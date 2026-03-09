@@ -1,0 +1,240 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// إعداد بيانات المراحل (20 مرحلة)
+// كل مرحلة تحتوي على الإيموجيز وقائمة بالإجابات المحتملة لتسهيل التخمين
+const levels = [
+  { emojis: '🚢🧊💑', answers: ['تايتانيك', 'تيتانيك', 'titanic'] },
+  { emojis: '🦇👨🃏', answers: ['باتمان', 'الرجل الوطواط', 'فارس الظلام', 'batman', 'the dark knight'] },
+  { emojis: '🕷️👨🕸️', answers: ['سبايدرمان', 'سبايدر مان', 'الرجل العنكبوت', 'spiderman', 'spider man'] },
+  { emojis: '🦁👑🌅', answers: ['الاسد الملك', 'أسد الملك', 'lion king', 'the lion king'] },
+  { emojis: '🧙‍♂️⚡👓', answers: ['هاري بوتر', 'harry potter'] },
+  { emojis: '🦖🦕🌴', answers: ['حديقة الديناصورات', 'جوراسيك بارك', 'jurassic park'] },
+  { emojis: '🏴‍☠️🚢⚓', answers: ['قراصنة الكاريبي', 'pirates of the caribbean'] },
+  { emojis: '👦🏠😱', answers: ['هوم الون', 'home alone'] },
+  { emojis: '🤡🎈🚸', answers: ['ات', 'إت', 'it'] },
+  { emojis: '🧸📖🤠', answers: ['حكاية لعبة', 'توي ستوري', 'toy story'] },
+  { emojis: '🐟🔍🐠', answers: ['البحث عن دوري', 'فايندنج دوري', 'finding dori'] },
+  { emojis: '⚔️🐉👑', answers: ['صراع العروش', 'جيم اوف ثرونز', 'game of thrones'] },
+  { emojis: '⛓️🏃‍♂️🏢', answers: ['بريزون بريك', 'prison break'] },
+  { emojis: '👨‍🔬🚙⏱️', answers: ['العودة الى المستقبل', 'العودة للمستقبل', 'back to the future'] },
+  { emojis: '🔴💊🕶️', answers: ['ماتركس', 'ماتريكس', 'the matrix', 'matrix'] },
+  { emojis: '🐼🥋🍜', answers: ['كونغ فو باندا', 'kung fu panda'] },
+  { emojis: '🍫🏭🎩', answers: ['تشارلي ومصنع الشوكولاتة', 'مصنع الشوكولاتة', 'ويلي ونكا', 'charlie and the chocolate factory', 'willy wonka'] },
+  { emojis: '🚗💨😡', answers: ['السرعة والغضب', 'فاست اند فيريوس', 'فاست اند فيورس', 'fast and furious'] },
+  { emojis: '👨‍🚀🌌🛸', answers: ['انترستيلر', 'بين النجوم', 'interstellar'] },
+  { emojis: '👽🚲🌕', answers: ['اي تي', 'إي تي', 'e.t', 'et', 'e.t.'] },
+];
+
+export default function App() {
+  const [currentLevel, setCurrentLevel] = useState(0);
+  const [inputValue, setInputValue] = useState('');
+  const [solvedLevels, setSolvedLevels] = useState([]); // تتبع المراحل المحلولة
+  const [justSolved, setJustSolved] = useState(false); // لإظهار رسالة النجاح المؤقتة
+  const [gameFinished, setGameFinished] = useState(false); // حالة الفوز النهائي
+  const [shake, setShake] = useState(false);
+  const inputRef = useRef(null);
+
+  // التركيز التلقائي على خانة الإدخال إذا لم تكن المرحلة محلولة
+  useEffect(() => {
+    if (!gameFinished && !justSolved && !solvedLevels.includes(currentLevel) && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [currentLevel, gameFinished, justSolved, solvedLevels]);
+
+  // دالة لمعالجة النص ليكون متسامحاً مع الأخطاء الشائعة (همزات، مسافات، تاء مربوطة)
+  const normalizeText = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[أإآا]/g, 'ا')
+      .replace(/[ةه]/g, 'ه')
+      .replace(/[ىي]/g, 'ي')
+      .replace(/[^a-z0-9ا-ي]/g, '') // إزالة المسافات والرموز
+      .trim();
+  };
+
+  const checkAnswer = () => {
+    if (!inputValue.trim() || solvedLevels.includes(currentLevel)) return;
+
+    const normalizedInput = normalizeText(inputValue);
+    const level = levels[currentLevel];
+    
+    // التحقق مما إذا كانت الإجابة تطابق أي من الإجابات المحتملة
+    const isCorrect = level.answers.some(
+      (ans) => normalizeText(ans) === normalizedInput
+    );
+
+    if (isCorrect) {
+      const newSolved = [...new Set([...solvedLevels, currentLevel])];
+      setSolvedLevels(newSolved);
+      setJustSolved(true);
+
+      setTimeout(() => {
+        setJustSolved(false);
+        if (newSolved.length === levels.length) {
+          setGameFinished(true);
+        } else {
+          // البحث عن أول مرحلة غير محلولة للانتقال إليها تلقائياً
+          let nextUnsolved = (currentLevel + 1) % levels.length;
+          while (newSolved.includes(nextUnsolved)) {
+            nextUnsolved = (nextUnsolved + 1) % levels.length;
+          }
+          changeLevel(nextUnsolved);
+        }
+      }, 1500); // الانتقال للمرحلة التالية بعد ثانية ونصف
+    } else {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      checkAnswer();
+    }
+  };
+
+  const changeLevel = (newLevel) => {
+    setCurrentLevel(newLevel);
+    setInputValue('');
+    setShake(false);
+  };
+
+  const resetGame = () => {
+    setCurrentLevel(0);
+    setInputValue('');
+    setSolvedLevels([]);
+    setGameFinished(false);
+    setJustSolved(false);
+  };
+
+  const isCurrentSolved = solvedLevels.includes(currentLevel);
+
+  return (
+    <div 
+      className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-900 flex items-center justify-center p-4"
+      dir="rtl"
+      style={{ fontFamily: 'Tahoma, Arial, sans-serif' }}
+    >
+      {/* ستايل مخصص للاهتزاز عند الإجابة الخاطئة */}
+      <style>
+        {`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+          }
+          .animate-shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+          }
+        `}
+      </style>
+
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-10 relative overflow-hidden">
+        
+        {/* واجهة النهاية والفوز الكبير */}
+        {gameFinished ? (
+          <div className="text-center py-10 animate-fade-in">
+            <div className="text-7xl mb-6 animate-bounce">🏆🌟🎉</div>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-600 mb-4">أنت أسطورة!</h1>
+            <p className="text-gray-600 mb-8 text-xl font-medium">
+              لقد أثبتت أنك خبير حقيقي! أتممت بنجاح جميع المراحل الـ {levels.length}.
+            </p>
+            <button
+              onClick={resetGame}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition duration-300 text-xl shadow-lg transform hover:-translate-y-1"
+            >
+              العب مرة أخرى 🔄
+            </button>
+          </div>
+        ) : (
+          /* واجهة اللعب الأساسية */
+          <div className="flex flex-col items-center">
+            
+            {/* رأس اللعبة والشريط التقدمي */}
+            <div className="w-full mb-6 text-center">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">خمن الفلم أو المسلسل 🎬</h1>
+              
+              {/* أزرار التنقل بين المراحل */}
+              <div className="flex items-center justify-between bg-gray-100 rounded-xl p-2 mb-4">
+                <button 
+                  onClick={() => changeLevel(Math.max(0, currentLevel - 1))}
+                  disabled={currentLevel === 0}
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-bold transition ${currentLevel === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:bg-white shadow-sm'}`}
+                >
+                  &rarr; السابق
+                </button>
+                <span className="font-bold text-gray-700">مرحلة {currentLevel + 1}</span>
+                <button 
+                  onClick={() => changeLevel(Math.min(levels.length - 1, currentLevel + 1))}
+                  disabled={currentLevel === levels.length - 1}
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-bold transition ${currentLevel === levels.length - 1 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:bg-white shadow-sm'}`}
+                >
+                  التالي &larr;
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-2">
+                <span>التقدم: {solvedLevels.length} / {levels.length}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-green-500 h-3 rounded-full transition-all duration-700"
+                  style={{ width: `${(solvedLevels.length / levels.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* الإيموجيز */}
+            <div className={`bg-gray-50 rounded-2xl w-full py-12 mb-8 flex justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-100'}`}>
+              <span className={`text-6xl sm:text-7xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
+                {levels[currentLevel].emojis}
+              </span>
+            </div>
+
+            {/* حالة الإجابة */}
+            {justSolved ? (
+              <div className="w-full text-center py-6 text-green-500 font-bold text-2xl animate-pulse">
+                إجابة صحيحة! 👏
+              </div>
+            ) : isCurrentSolved ? (
+              <div className="w-full text-center py-4 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold text-xl">
+                تم حل هذه المرحلة ✅
+                <div className="text-sm font-normal mt-2 text-green-600">
+                  الإجابة: {levels[currentLevel].answers[0]}
+                </div>
+              </div>
+            ) : (
+              /* خانة الإدخال والزر */
+              <div className={`w-full flex flex-col gap-4 ${shake ? 'animate-shake' : ''}`}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="اكتب اسم الفلم أو المسلسل..."
+                  className="w-full text-center text-xl p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none transition text-gray-800 bg-gray-50 focus:bg-white"
+                  autoComplete="off"
+                />
+                
+                <button
+                  onClick={checkAnswer}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition duration-300 text-xl shadow-md active:transform active:scale-95"
+                >
+                  تحقق
+                </button>
+              </div>
+            )}
+            
+            {/* تلميح صغير */}
+            <p className="text-xs text-gray-400 mt-6 text-center">
+              *يمكنك الضغط على زر "Enter" في الكيبورد لتأكيد الإجابة. الإجابات باللغة العربية أو الإنجليزية مقبولة.
+            </p>
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

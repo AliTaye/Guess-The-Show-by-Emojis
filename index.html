@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خمن الفلم أو المسلسل من الإيموجي 🎬</title>
+    <title>خمن من الإيموجي 🎬🎮⚽</title>
 
     <!-- مكتبة Tailwind CSS للتصميم -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- مكتبات React لتعمل مباشرة داخل المتصفح بدون تثبيت -->
+    <!-- مكتبات React لتعمل مباشرة داخل المتصفح -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,6 +19,7 @@
             font-family: 'Tahoma', 'Arial', sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #1e1b4b; /* لون خلفية افتراضي قبل تحميل Tailwind */
         }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -36,96 +37,245 @@
         .animate-fade-in {
             animation: fade-in 0.6s ease-out forwards;
         }
+        /* تصميم شريط التمرير */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c7d2fe; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #818cf8; 
+        }
     </style>
 </head>
 <body>
-    <!-- المكان الذي ستعمل فيه اللعبة -->
     <div id="root"></div>
 
-    <!-- كود اللعبة -->
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // إعداد بيانات المراحل (20 مرحلة)
-        const levels = [
-            { emojis: '🚢🧊💑', answers: ['تايتانيك', 'تيتانيك', 'titanic'] },
-            { emojis: '🦇👨🃏', answers: ['باتمان', 'الرجل الوطواط', 'فارس الظلام', 'batman', 'the dark knight'] },
-            { emojis: '🕷️👨🕸️', answers: ['سبايدرمان', 'سبايدر مان', 'الرجل العنكبوت', 'spiderman', 'spider man'] },
-            { emojis: '🦁👑🌅', answers: ['الاسد الملك', 'أسد الملك', 'lion king', 'the lion king'] },
-            { emojis: '🧙‍♂️⚡👓', answers: ['هاري بوتر', 'harry potter'] },
-            { emojis: '🦖🦕🌴', answers: ['حديقة الديناصورات', 'جوراسيك بارك', 'jurassic park'] },
-            { emojis: '🏴‍☠️🚢⚓', answers: ['قراصنة الكاريبي', 'pirates of the caribbean'] },
-            { emojis: '👦🏠😱', answers: ['هوم الون', 'وحدي في المنزل', 'home alone'] },
-            { emojis: '🤡🎈🚸', answers: ['ات', 'إت', 'الشيء', 'it'] },
-            { emojis: '🧸📖🤠', answers: ['حكاية لعبة', 'توي ستوري', 'toy story'] },
-            { emojis: '🐟🔍🐠', answers: ['البحث عن نيمو', 'فايندنج نيمو', 'finding nemo', 'البحث عن دوري', 'finding dori'] },
-            { emojis: '⚔️🐉👑', answers: ['صراع العروش', 'جيم اوف ثرونز', 'game of thrones'] },
-            { emojis: '⛓️🏃‍♂️🏢', answers: ['بريزون بريك', 'الهروب من السجن', 'prison break'] },
-            { emojis: '👨‍🔬🚙⏱️', answers: ['العودة الى المستقبل', 'العودة للمستقبل', 'back to the future'] },
-            { emojis: '🔴💊🕶️', answers: ['ماتركس', 'ماتريكس', 'the matrix', 'matrix'] },
-            { emojis: '🐼🥋🍜', answers: ['كونغ فو باندا', 'kung fu panda'] },
-            { emojis: '🍫🏭🎩', answers: ['تشارلي ومصنع الشوكولاتة', 'مصنع الشوكولاتة', 'ويلي ونكا', 'charlie and the chocolate factory', 'willy wonka'] },
-            { emojis: '🚗💨😡', answers: ['السرعة والغضب', 'فاست اند فيريوس', 'فاست اند فيورس', 'fast and furious'] },
-            { emojis: '👨‍🚀🌌🛸', answers: ['انترستيلر', 'انترستيلار', 'بين النجوم', 'interstellar'] },
-            { emojis: '👽🚲🌕', answers: ['اي تي', 'إي تي', 'e.t', 'et', 'e.t.'] },
-        ];
+        // قاعدة بيانات اللعبة (5 أقسام، كل قسم 20 مرحلة)
+        const categoriesData = {
+            movies: {
+                id: 'movies',
+                name: 'أفلام',
+                icon: '🎬',
+                color: 'from-blue-500 to-indigo-600',
+                levels: [
+                    { emojis: '🚢🧊💑', answers: ['تايتانيك', 'تيتانيك', 'titanic'], hint: 'سفينة ضخمة غرقت في أول رحلة لها' },
+                    { emojis: '🦇👨🃏', answers: ['باتمان', 'الرجل الوطواط', 'فارس الظلام', 'batman', 'the dark knight'], hint: 'بطل خارق يعيش في مدينة غوثام' },
+                    { emojis: '🕷️👨🕸️', answers: ['سبايدرمان', 'سبايدر مان', 'الرجل العنكبوت', 'spiderman', 'spider man'], hint: 'بطل خارق يرتدي الأحمر والأزرق' },
+                    { emojis: '🦁👑🌅', answers: ['الاسد الملك', 'أسد الملك', 'lion king', 'the lion king'], hint: 'قصة شبل يسعى لاستعادة عرش أبيه' },
+                    { emojis: '🧙‍♂️⚡👓', answers: ['هاري بوتر', 'harry potter'], hint: 'مدرسة سحر وشعوذة' },
+                    { emojis: '🦖🦕🌴', answers: ['حديقة الديناصورات', 'جوراسيك بارك', 'jurassic park'], hint: 'حديقة تعود فيها كائنات منقرضة للحياة' },
+                    { emojis: '🏴‍☠️🚢⚓', answers: ['قراصنة الكاريبي', 'pirates of the caribbean'], hint: 'قبطان غريب الأطوار يبحث عن كنز' },
+                    { emojis: '👦🏠😱', answers: ['هوم الون', 'وحدي في المنزل', 'home alone'], hint: 'طفل يُنسى في المنزل في عيد الميلاد' },
+                    { emojis: '🤡🎈🚸', answers: ['ات', 'إت', 'الشيء', 'it'], hint: 'مهرج مرعب يظهر كل 27 عاماً' },
+                    { emojis: '🧸📖🤠', answers: ['حكاية لعبة', 'توي ستوري', 'toy story'], hint: 'ماذا تفعل ألعابك عندما تغادر الغرفة؟' },
+                    { emojis: '🐟🔍🐠', answers: ['البحث عن نيمو', 'فايندنج نيمو', 'finding nemo'], hint: 'رحلة أب للبحث عن ابنه الضائع في المحيط' },
+                    { emojis: '👨‍🔬🚙⏱️', answers: ['العودة الى المستقبل', 'العودة للمستقبل', 'back to the future'], hint: 'سيارة آلة زمن' },
+                    { emojis: '🔴💊🕶️', answers: ['ماتركس', 'ماتريكس', 'the matrix', 'matrix'], hint: 'عالم افتراضي وحبة حمراء وزرقاء' },
+                    { emojis: '🐼🥋🍜', answers: ['كونغ فو باندا', 'kung fu panda'], hint: 'حيوان كسول يتعلم فنون القتال' },
+                    { emojis: '🍫🏭🎩', answers: ['تشارلي ومصنع الشوكولاتة', 'مصنع الشوكولاتة', 'ويلي ونكا', 'charlie and the chocolate factory', 'willy wonka'], hint: 'تذكرة ذهبية ومصنع حلويات عجيب' },
+                    { emojis: '🚗💨😡', answers: ['السرعة والغضب', 'فاست اند فيريوس', 'فاست اند فيورس', 'fast and furious'], hint: 'سباقات سيارات غير قانونية وعائلة' },
+                    { emojis: '👨‍🚀🌌🛸', answers: ['انترستيلر', 'انترستيلار', 'بين النجوم', 'interstellar'], hint: 'رحلة عبر ثقب دودي لإنقاذ البشرية' },
+                    { emojis: '👽🚲🌕', answers: ['اي تي', 'إي تي', 'e.t', 'et', 'e.t.'], hint: 'كائن فضائي يريد العودة إلى وطنه' },
+                    { emojis: '👴🎈🏠', answers: ['اب', 'فوق', 'up'], hint: 'منزل يطير بالبالونات' },
+                    { emojis: '💍🌋👁️', answers: ['سيد الخواتم', 'ملك الخواتم', 'lord of the rings'], hint: 'رحلة لتدمير قطعة ذهبية سحرية' },
+                ]
+            },
+            series: {
+                id: 'series',
+                name: 'مسلسلات',
+                icon: '📺',
+                color: 'from-red-500 to-rose-600',
+                levels: [
+                    { emojis: '⚗️🧪🚐', answers: ['بريكنج باد', 'breaking bad'], hint: 'مدرس كيمياء يتحول إلى طباخ مواد ممنوعة' },
+                    { emojis: '👧🚲🔦', answers: ['سترينجر ثينقز', 'سترينجر ثينغز', 'اشياء غريبة', 'stranger things'], hint: 'عالم مقلوب ووحش الديموغورغون' },
+                    { emojis: '⚔️🐉👑', answers: ['صراع العروش', 'جيم اوف ثرونز', 'game of thrones'], hint: 'صراع على العرش الحديدي' },
+                    { emojis: '⛓️🏃‍♂️🏢', answers: ['بريزون بريك', 'الهروب من السجن', 'prison break'], hint: 'أخ يوشم خريطة على جسده لإنقاذ أخيه' },
+                    { emojis: '🎭🏦💰', answers: ['لا كاسا دي بابيل', 'البروفيسور', 'money heist', 'la casa de papel'], hint: 'عصابة ترتدي أقنعة سلفادور دالي' },
+                    { emojis: '🧟‍♂️🔫🚶‍♂️', answers: ['الموتى السائرون', 'ذا والكينج ديد', 'the walking dead'], hint: 'عالم مليء بالزومبي' },
+                    { emojis: '🧢🚬🐎', answers: ['بيكي بلايندرز', 'peaky blinders'], hint: 'عصابة عائلة شيلبي في برمنغهام' },
+                    { emojis: '🦑🎮👧', answers: ['لعبة الحبار', 'squid game'], hint: 'ألعاب أطفال مميتة من أجل المال' },
+                    { emojis: '🛋️☕👫', answers: ['فريندز', 'الاصدقاء', 'friends'], hint: 'ستة أصدقاء في نيويورك' },
+                    { emojis: '♾️⏳👨‍👦', answers: ['دارك', 'ظلام', 'dark'], hint: 'سفر عبر الزمن في مدينة ألمانية صغيرة' },
+                    { emojis: '🦸‍♂️💉🦅', answers: ['ذا بويز', 'الرفاق', 'the boys'], hint: 'أبطال خارقون أشرار' },
+                    { emojis: '📱📺😱', answers: ['المرآة السوداء', 'بلاك ميرور', 'black mirror'], hint: 'حلقات منفصلة عن الجانب المظلم للتكنولوجيا' },
+                    { emojis: '🪓🛡️⛵', answers: ['فايكنجز', 'فايكنج', 'vikings'], hint: 'راغنار لوثبروك' },
+                    { emojis: '✈️🏝️❓', answers: ['لوست', 'الضياع', 'lost'], hint: 'ناجون من تحطم طائرة على جزيرة غامضة' },
+                    { emojis: '🐺⚔️🪙', answers: ['ذا ويتشر', 'الساحر', 'the witcher'], hint: 'صائد وحوش ذو شعر أبيض' },
+                    { emojis: '🐉🔥👑', answers: ['ال التنين', 'هاوس اوف ذا دراجون', 'house of the dragon'], hint: 'قصة عائلة تارغاريان' },
+                    { emojis: '🕵️‍♂️🎻🇬🇧', answers: ['شارلوك هولمز', 'شارلوك', 'sherlock'], hint: 'محقق عبقري في لندن الحديثة' },
+                    { emojis: '🏢📎☕', answers: ['ذا اوفيس', 'المكتب', 'the office'], hint: 'شركة لبيع الورق ومدير غريب الأطوار' },
+                    { emojis: '🚀👶🟢', answers: ['ماندالوريان', 'the mandalorian'], hint: 'صائد جوائز يحمي طفلاً فضائياً' },
+                    { emojis: '👨‍⚕️🦯💊', answers: ['هاوس', 'دكتور هاوس', 'house'], hint: 'طبيب عبقري ولكنه غريب الأطوار يعتمد على عصا' },
+                ]
+            },
+            games: {
+                id: 'games',
+                name: 'ألعاب',
+                icon: '🎮',
+                color: 'from-purple-500 to-fuchsia-600',
+                levels: [
+                    { emojis: '🚗🔫💰', answers: ['درايفر', 'قراند', 'حرامي سيارات', 'gta', 'grand theft auto'], hint: 'سرقة سيارات وعالم مفتوح' },
+                    { emojis: '🧱⛏️🧟‍♂️', answers: ['ماين كرافت', 'ماينكرافت', 'minecraft'], hint: 'بناء وتكسير مكعبات' },
+                    { emojis: '🍄🐢👨🏻', answers: ['ماريو', 'سوبر ماريو', 'mario', 'super mario'], hint: 'سباك إيطالي ينقذ أميرة' },
+                    { emojis: '🟡👻🍒', answers: ['باكمان', 'باك مان', 'pacman'], hint: 'أكل النقاط والهروب من الأشباح' },
+                    { emojis: '🧝‍♂️🗡️🛡️', answers: ['زيلدا', 'اسطورة زيلدا', 'zelda', 'the legend of zelda'], hint: 'بطل باللون الأخضر ينقذ أميرة في عالم خيالي' },
+                    { emojis: '⚽🥅🏟️', answers: ['فيفا', 'fifa'], hint: 'أشهر لعبة فيديو لكرة القدم' },
+                    { emojis: '🪖🔫🚁', answers: ['كول اوف ديوتي', 'كود', 'call of duty', 'cod'], hint: 'لعبة تصويب وحروب شهيرة' },
+                    { emojis: '🧟‍♀️🔫🌿', answers: ['ريزدنت ايفل', 'الشر المقيم', 'resident evil'], hint: 'رعب بقاء وزومبي وشركة أمبريلا' },
+                    { emojis: '🪓🧔👦', answers: ['اله الحرب', 'قود اوف وار', 'جود اوف وار', 'god of war'], hint: 'إله إغريقي غاضب وابنه' },
+                    { emojis: '🚌🪂🔫', answers: ['فورتنايت', 'فورت نايت', 'fortnite'], hint: 'باتل رويال وبناء' },
+                    { emojis: '🍳🪂🔫', answers: ['ببجي', 'بوبجي', 'pubg'], hint: 'هبوط من طائرة في جزيرة والنجاة للأخير' },
+                    { emojis: '🤠🐎🔫', answers: ['ريد ديد', 'ريد ديد ريدمبشن', 'red dead redemption'], hint: 'رعاة بقر في الغرب الأمريكي' },
+                    { emojis: '👨👧🧟‍♂️', answers: ['ذا لاست اوف اس', 'اخر المتبقين', 'the last of us'], hint: 'رحلة رجل وفتاة في عالم مدمر' },
+                    { emojis: '🦊🍎📦', answers: ['كراش', 'كراش بانديكوت', 'crash', 'crash bandicoot'], hint: 'ثعلب برتقالي يجمع التفاح' },
+                    { emojis: '🥋🩸💀', answers: ['مورتال كومبات', 'mortal kombat'], hint: 'لعبة قتال دموية شهيرة بكلمة (Finish Him)' },
+                    { emojis: '🦔🔵👟', answers: ['سونيك', 'sonic'], hint: 'قنفذ أزرق سريع جداً' },
+                    { emojis: '🚀🔪🤫', answers: ['امونج اس', 'امونق اس', 'among us'], hint: 'البحث عن المحتال في سفينة فضائية' },
+                    { emojis: '🟥⬛👦', answers: ['روبلوكس', 'roblox'], hint: 'منصة لبناء ولعب ملايين الألعاب المصغرة' },
+                    { emojis: '⚔️🧙‍♂️🛡️', answers: ['ليج اوف ليجيندز', 'لول', 'league of legends', 'lol'], hint: 'لعبة موبا (MOBA) شهيرة جداً' },
+                    { emojis: '🔫🦍🤖', answers: ['اوفر واتش', 'اوفراتش', 'overwatch'], hint: 'لعبة تصويب وتصنيف أبطال (Hero Shooter)' },
+                ]
+            },
+            football: {
+                id: 'football',
+                name: 'لاعبو كرة قدم',
+                icon: '⚽',
+                color: 'from-green-500 to-emerald-600',
+                levels: [
+                    { emojis: '🇦🇷🐐🔟', answers: ['ميسي', 'ليونيل ميسي', 'messi'], hint: 'أسطورة أرجنتينية حقق كأس العالم 2022' },
+                    { emojis: '🇵🇹🐐7️⃣', answers: ['كريستيانو', 'رونالدو', 'كريستيانو رونالدو', 'الدون', 'ronaldo', 'cristiano ronaldo'], hint: 'صاروخ ماديرا البرتغالي' },
+                    { emojis: '🇧🇷🕺🔟', answers: ['نيمار', 'neymar'], hint: 'راقص السامبا البرازيلي صاحب المهارات' },
+                    { emojis: '🇫🇷🐢🏃‍♂️', answers: ['مبابي', 'كيليان مبابي', 'mbappe'], hint: 'مهاجم فرنسي سريع جداً' },
+                    { emojis: '🇧🇷🏆🏆🏆', answers: ['بيليه', 'pele'], hint: 'الجوهرة السوداء البرازيلية' },
+                    { emojis: '🇦🇷🔟✋⚽', answers: ['مارادونا', 'دييغو مارادونا', 'maradona'], hint: 'أسطورة الأرجنتين وصاحب هدف يد الرب' },
+                    { emojis: '🇫🇷👨‍🦲🪄', answers: ['زيدان', 'زين الدين زيدان', 'zidane'], hint: 'أسطورة فرنسية برأسية شهيرة' },
+                    { emojis: '🇧🇷😁🪄', answers: ['رونالدينيو', 'ronaldinho'], hint: 'الساحر البرازيلي صاحب الابتسامة الدائمة' },
+                    { emojis: '🇪🇬👑1️⃣1️⃣', answers: ['محمد صلاح', 'صلاح', 'فخر العرب', 'salah', 'mohamed salah'], hint: 'فخر العرب والملك المصري' },
+                    { emojis: '🇫🇷9️⃣🏆', answers: ['بنزيما', 'كريم بنزيما', 'الحكومة', 'benzema'], hint: 'مهاجم فرنسي يلقب بالحكومة' },
+                    { emojis: '🇳🇴🤖👱‍♂️', answers: ['هالاند', 'ايرلينج هالاند', 'haaland'], hint: 'مهاجم نرويجي يشبه الروبوت' },
+                    { emojis: '🇵🇱9️⃣⚽', answers: ['ليفاندوفسكي', 'lewandowski'], hint: 'مهاجم بولندي ماكينة أهداف' },
+                    { emojis: '🇭🇷🪄🔟', answers: ['مودريتش', 'لوكا مودريتش', 'modric'], hint: 'موسيقار خط الوسط الكرواتي' },
+                    { emojis: '🇪🇸🛡️4️⃣', answers: ['راموس', 'سيرجيو راموس', 'ramos'], hint: 'مدافع إسباني صلب وقائد تاريخي لريال مدريد' },
+                    { emojis: '🇪🇸🧠6️⃣', answers: ['تشافي', 'xavi'], hint: 'مايسترو خط وسط إسبانيا وبرشلونة سابقاً' },
+                    { emojis: '🇪🇸🪄8️⃣', answers: ['انيستا', 'اندريس انيستا', 'iniesta'], hint: 'رسام خط الوسط الإسباني صاحب هدف كأس العالم 2010' },
+                    { emojis: '🏴󠁧󠁢󠁥󠁮󠁧󠁿🎯👟', answers: ['بيكهام', 'ديفيد بيكهام', 'beckham'], hint: 'أسطورة إنجليزية بتسديدات حرة متقنة' },
+                    { emojis: '🇸🇪🦁🥋', answers: ['ابراهيموفيتش', 'زلاتان', 'ibrahimovic', 'zlatan'], hint: 'مهاجم سويدي يلقب نفسه بالأسد' },
+                    { emojis: '🇫🇷😊🏃‍♂️', answers: ['كانتي', 'نجولو كانتي', 'kante'], hint: 'لاعب وسط فرنسي لا يتوقف عن الركض ومحبوب جداً' },
+                    { emojis: '🇧🇪🎯👟', answers: ['دي بروين', 'كيفن دي بروين', 'de bruyne'], hint: 'صانع ألعاب بلجيكي ملك التمريرات الحاسمة' },
+                ]
+            },
+            history: {
+                id: 'history',
+                name: 'شخصيات تاريخية',
+                icon: '📜',
+                color: 'from-amber-500 to-orange-600',
+                levels: [
+                    { emojis: '👨‍🔬👅E=mc²', answers: ['اينشتاين', 'البرت اينشتاين', 'einstein'], hint: 'صاحب النظرية النسبية' },
+                    { emojis: '🍎👨‍🔬🌳', answers: ['نيوتن', 'اسحاق نيوتن', 'newton'], hint: 'اكتشف الجاذبية بسبب تفاحة' },
+                    { emojis: '🇮🇳🕊️👓', answers: ['غاندي', 'المهاتما غاندي', 'gandhi'], hint: 'قائد حركة الاستقلال السلمية في الهند' },
+                    { emojis: '🇿🇦✊🏾⛓️', answers: ['مانديلا', 'نيلسون مانديلا', 'mandela'], hint: 'ناضل ضد الفصل العنصري في جنوب أفريقيا' },
+                    { emojis: '🇩🇪👨🏻‍✈️😠', answers: ['هتلر', 'ادولف هتلر', 'hitler'], hint: 'قائد ألمانيا في الحرب العالمية الثانية' },
+                    { emojis: '🇪🇬👑🐍', answers: ['كليوباترا', 'cleopatra'], hint: 'ملكة مصر الفرعونية الشهيرة' },
+                    { emojis: '🇬🇷⚔️🌍', answers: ['الاسكندر الاكبر', 'الاسكندر المقدوني', 'alexander the great'], hint: 'قائد عسكري مقدوني غزا نصف العالم القديم' },
+                    { emojis: '🇮🇹⚔️👑', answers: ['يوليوس قيصر', 'قيصر', 'julius caesar', 'caesar'], hint: 'إمبراطور روماني شهير اغتيل غدراً' },
+                    { emojis: '🎨👨‍🎨🚁', answers: ['ليوناردو دافنشي', 'دافنشي', 'da vinci', 'leonardo da vinci'], hint: 'رسام الموناليزا ومخترع عبقري' },
+                    { emojis: '⚡💡👨‍🔬', answers: ['تيسلا', 'نيكولا تيسلا', 'تسلا', 'tesla', 'nikola tesla'], hint: 'مخترع التيار المتردد' },
+                    { emojis: '💡👨‍🔬🇺🇸', answers: ['اديسون', 'توماس اديسون', 'edison', 'thomas edison'], hint: 'مخترع المصباح الكهربائي العملي' },
+                    { emojis: '✍️🎭💀', answers: ['شكسبير', 'ويليام شكسبير', 'shakespeare'], hint: 'كاتب مسرحي إنجليزي صاحب روميو وجولييت' },
+                    { emojis: '🇫🇷🐎⚔️', answers: ['نابليون', 'نابليون بونابرت', 'napoleon'], hint: 'إمبراطور فرنسي وقائد عسكري عظيم' },
+                    { emojis: '🇺🇸🎩📜', answers: ['لينكولن', 'ابراهام لينكولن', 'lincoln', 'abraham lincoln'], hint: 'رئيس أمريكي أنهى العبودية' },
+                    { emojis: '🇺🇸✊🏾🎤', answers: ['مارتن لوثر كينج', 'مارتن لوثر', 'martin luther king', 'mlk'], hint: 'قائد حركة الحقوق المدنية صاحب خطبة "لدي حلم"' },
+                    { emojis: '🥊🦋🐝', answers: ['محمد علي كلاي', 'محمد علي', 'muhammad ali'], hint: 'أسطورة الملاكمة "يطير كالفراشة ويلدغ كالنحلة"' },
+                    { emojis: '✈️👨‍👦‍👦☁️', answers: ['الاخوان رايت', 'أخوان رايت', 'wright brothers'], hint: 'أول من اخترع طائرة تعمل بنجاح' },
+                    { emojis: '🚢🌎🔭', answers: ['كولومبوس', 'كريستوفر كولومبوس', 'columbus'], hint: 'مستكشف يُنسب إليه اكتشاف الأمريكتين' },
+                    { emojis: '⚕️📚👳‍♂️', answers: ['ابن سينا', 'ibn sina', 'avicenna'], hint: 'طبيب وعالم مسلم صاحب كتاب القانون في الطب' },
+                    { emojis: '👩‍🔬☢️🏆', answers: ['ماري كوري', 'marie curie'], hint: 'عالمة فيزياء وكيمياء فازت بجائزتي نوبل' },
+                ]
+            }
+        };
 
         function App() {
+            // حالة الأقسام والمراحل المحلولة (يتم جلبها من LocalStorage إذا وجدت)
+            const [solvedProgress, setSolvedProgress] = useState(() => {
+                const saved = localStorage.getItem('emojiGameProgress_v2');
+                if (saved) return JSON.parse(saved);
+                return { movies: [], series: [], games: [], football: [], history: [] };
+            });
+
+            const [activeCategory, setActiveCategory] = useState(null); // القسم المفتوح حالياً
             const [currentLevel, setCurrentLevel] = useState(0);
             const [inputValue, setInputValue] = useState('');
-            const [solvedLevels, setSolvedLevels] = useState([]); // تتبع المراحل المحلولة
-            const [justSolved, setJustSolved] = useState(false); // لإظهار رسالة النجاح المؤقتة
-            const [gameFinished, setGameFinished] = useState(false); // حالة الفوز النهائي
+            const [justSolved, setJustSolved] = useState(false);
             const [shake, setShake] = useState(false);
+            const [showHintModal, setShowHintModal] = useState(false); // حالة إظهار التلميح
             const inputRef = useRef(null);
 
-            // التركيز التلقائي على خانة الإدخال إذا لم تكن المرحلة محلولة
+            // حفظ التقدم تلقائياً
             useEffect(() => {
-                if (!gameFinished && !justSolved && !solvedLevels.includes(currentLevel) && inputRef.current) {
+                localStorage.setItem('emojiGameProgress_v2', JSON.stringify(solvedProgress));
+            }, [solvedProgress]);
+
+            // التركيز التلقائي على خانة الإدخال
+            useEffect(() => {
+                if (activeCategory && !justSolved && !solvedProgress[activeCategory].includes(currentLevel) && inputRef.current) {
                     inputRef.current.focus();
                 }
-            }, [currentLevel, gameFinished, justSolved, solvedLevels]);
+            }, [currentLevel, activeCategory, justSolved, solvedProgress]);
 
-            // دالة لمعالجة النص ليكون متسامحاً مع الأخطاء الشائعة (همزات، مسافات، تاء مربوطة)
+            // معالجة النص
             const normalizeText = (text) => {
                 return text
                     .toLowerCase()
                     .replace(/[أإآا]/g, 'ا')
                     .replace(/[ةه]/g, 'ه')
                     .replace(/[ىي]/g, 'ي')
-                    .replace(/[^a-z0-9ا-ي]/g, '') // إزالة المسافات والرموز
+                    .replace(/[^a-z0-9ا-ي]/g, '') 
                     .trim();
             };
 
             const checkAnswer = () => {
-                if (!inputValue.trim() || solvedLevels.includes(currentLevel)) return;
+                if (!inputValue.trim() || !activeCategory) return;
+                if (solvedProgress[activeCategory].includes(currentLevel)) return;
 
                 const normalizedInput = normalizeText(inputValue);
-                const level = levels[currentLevel];
+                const categoryLevels = categoriesData[activeCategory].levels;
+                const level = categoryLevels[currentLevel];
                 
-                // التحقق مما إذا كانت الإجابة تطابق أي من الإجابات المحتملة
                 const isCorrect = level.answers.some(
                     (ans) => normalizeText(ans) === normalizedInput
                 );
 
                 if (isCorrect) {
-                    const newSolved = [...new Set([...solvedLevels, currentLevel])];
-                    setSolvedLevels(newSolved);
+                    const updatedCategoryProgress = [...new Set([...solvedProgress[activeCategory], currentLevel])];
+                    
+                    setSolvedProgress(prev => ({
+                        ...prev,
+                        [activeCategory]: updatedCategoryProgress
+                    }));
+                    
                     setJustSolved(true);
 
                     setTimeout(() => {
                         setJustSolved(false);
-                        if (newSolved.length === levels.length) {
-                            setGameFinished(true);
-                        } else {
-                            // البحث عن أول مرحلة غير محلولة للانتقال إليها تلقائياً
-                            let nextUnsolved = (currentLevel + 1) % levels.length;
-                            while (newSolved.includes(nextUnsolved)) {
-                                nextUnsolved = (nextUnsolved + 1) % levels.length;
+                        if (updatedCategoryProgress.length < categoryLevels.length) {
+                            // الانتقال للمرحلة غير المحلولة التالية
+                            let nextUnsolved = (currentLevel + 1) % categoryLevels.length;
+                            while (updatedCategoryProgress.includes(nextUnsolved)) {
+                                nextUnsolved = (nextUnsolved + 1) % categoryLevels.length;
                             }
                             changeLevel(nextUnsolved);
                         }
-                    }, 1500); // الانتقال للمرحلة التالية بعد ثانية ونصف
+                    }, 1500);
                 } else {
                     setShake(true);
                     setTimeout(() => setShake(false), 500);
@@ -133,131 +283,259 @@
             };
 
             const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
-                    checkAnswer();
-                }
+                if (e.key === 'Enter') checkAnswer();
             };
 
             const changeLevel = (newLevel) => {
                 setCurrentLevel(newLevel);
                 setInputValue('');
                 setShake(false);
+                setShowHintModal(false); // إغلاق التلميح عند تغيير المرحلة
             };
 
-            const resetGame = () => {
-                setCurrentLevel(0);
+            const selectCategory = (categoryId) => {
+                setActiveCategory(categoryId);
+                
+                // البحث عن أول مرحلة غير محلولة لبدء اللعب منها
+                const categorySolved = solvedProgress[categoryId];
+                const totalLevels = categoriesData[categoryId].levels.length;
+                let startingLevel = 0;
+                
+                if (categorySolved.length > 0 && categorySolved.length < totalLevels) {
+                    for (let i = 0; i < totalLevels; i++) {
+                        if (!categorySolved.includes(i)) {
+                            startingLevel = i;
+                            break;
+                        }
+                    }
+                }
+                
+                setCurrentLevel(startingLevel);
                 setInputValue('');
-                setSolvedLevels([]);
-                setGameFinished(false);
-                setJustSolved(false);
             };
 
-            const isCurrentSolved = solvedLevels.includes(currentLevel);
+            const resetAllProgress = () => {
+                if (window.confirm('هل أنت متأكد أنك تريد حذف جميع تقدمك والبدء من جديد؟')) {
+                    setSolvedProgress({ movies: [], series: [], games: [], football: [], history: [] });
+                    setActiveCategory(null);
+                }
+            };
 
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-900 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-10 relative overflow-hidden">
-                        
-                        {/* واجهة النهاية والفوز الكبير */}
-                        {gameFinished ? (
-                            <div className="text-center py-10 animate-fade-in">
-                                <div className="text-7xl mb-6 animate-bounce">🏆🌟🎉</div>
-                                <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-600 mb-4">أنت أسطورة!</h1>
-                                <p className="text-gray-600 mb-8 text-xl font-medium">
-                                    لقد أثبتت أنك خبير حقيقي! أتممت بنجاح جميع المراحل الـ {levels.length}.
-                                </p>
-                                <button
-                                    onClick={resetGame}
-                                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition duration-300 text-xl shadow-lg transform hover:-translate-y-1"
-                                >
-                                    العب مرة أخرى 🔄
-                                </button>
-                            </div>
-                        ) : (
-                            /* واجهة اللعب الأساسية */
-                            <div className="flex flex-col items-center">
+            // واجهة اختيار الأقسام
+            if (!activeCategory) {
+                const totalSolved = Object.values(solvedProgress).reduce((acc, curr) => acc + curr.length, 0);
+                const isMaster = totalSolved === 100;
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4 sm:p-8">
+                        <div className="max-w-5xl mx-auto">
+                            <div className="text-center mb-10 animate-fade-in">
+                                <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 drop-shadow-lg">
+                                    تحدي الإيموجي الشامل 🧠✨
+                                </h1>
+                                <p className="text-indigo-200 text-lg mb-6">اختر القسم وابدأ التحدي.. لديك 100 مرحلة!</p>
                                 
-                                {/* رأس اللعبة والشريط التقدمي */}
-                                <div className="w-full mb-6 text-center">
-                                    <h1 className="text-2xl font-bold text-gray-800 mb-4">خمن الفلم أو المسلسل 🎬</h1>
-                                    
-                                    {/* أزرار التنقل بين المراحل */}
-                                    <div className="flex items-center justify-between bg-gray-100 rounded-xl p-2 mb-4">
-                                        <button 
-                                            onClick={() => changeLevel(Math.max(0, currentLevel - 1))}
-                                            disabled={currentLevel === 0}
-                                            className={`px-3 sm:px-4 py-2 rounded-lg font-bold transition ${currentLevel === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:bg-white shadow-sm'}`}
-                                        >
-                                            &rarr; السابق
-                                        </button>
-                                        <span className="font-bold text-gray-700">مرحلة {currentLevel + 1}</span>
-                                        <button 
-                                            onClick={() => changeLevel(Math.min(levels.length - 1, currentLevel + 1))}
-                                            disabled={currentLevel === levels.length - 1}
-                                            className={`px-3 sm:px-4 py-2 rounded-lg font-bold transition ${currentLevel === levels.length - 1 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:bg-white shadow-sm'}`}
-                                        >
-                                            التالي &larr;
-                                        </button>
+                                {/* شريط التقدم الكلي */}
+                                <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm max-w-xl mx-auto border border-white/20">
+                                    <div className="flex justify-between text-white font-bold mb-2">
+                                        <span>التقدم الإجمالي</span>
+                                        <span className={isMaster ? 'text-yellow-400' : ''}>{totalSolved} / 100</span>
                                     </div>
-
-                                    <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-2">
-                                        <span>التقدم: {solvedLevels.length} / {levels.length}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                    <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
                                         <div 
-                                            className="bg-green-500 h-3 rounded-full transition-all duration-700"
-                                            style={{ width: `${(solvedLevels.length / levels.length) * 100}%` }}
+                                            className="bg-gradient-to-r from-blue-400 to-emerald-400 h-4 rounded-full transition-all duration-1000"
+                                            style={{ width: `${totalSolved}%` }}
                                         ></div>
                                     </div>
+                                    {isMaster && <p className="text-yellow-400 mt-2 font-bold animate-pulse">👑 لقد أنهيت جميع المراحل، أنت أسطورة! 👑</p>}
                                 </div>
+                            </div>
 
-                                {/* الإيموجيز */}
-                                <div className={`bg-gray-50 rounded-2xl w-full py-12 mb-8 flex justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-100'}`}>
-                                    <span className={`text-6xl sm:text-7xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
-                                        {levels[currentLevel].emojis}
-                                    </span>
-                                </div>
+                            {/* شبكة الأقسام */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {Object.values(categoriesData).map((cat) => {
+                                    const solvedCount = solvedProgress[cat.id].length;
+                                    const isCompleted = solvedCount === 20;
 
-                                {/* حالة الإجابة */}
-                                {justSolved ? (
-                                    <div className="w-full text-center py-6 text-green-500 font-bold text-2xl animate-pulse">
-                                        إجابة صحيحة! 👏
-                                    </div>
-                                ) : isCurrentSolved ? (
-                                    <div className="w-full text-center py-4 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold text-xl">
-                                        تم حل هذه المرحلة ✅
-                                        <div className="text-sm font-normal mt-2 text-green-600">
-                                            الإجابة: {levels[currentLevel].answers[0]}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* خانة الإدخال والزر */
-                                    <div className={`w-full flex flex-col gap-4 ${shake ? 'animate-shake' : ''}`}>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            value={inputValue}
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            placeholder="اكتب اسم الفلم أو المسلسل..."
-                                            className="w-full text-center text-xl p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none transition text-gray-800 bg-gray-50 focus:bg-white"
-                                            autoComplete="off"
-                                        />
-                                        
+                                    return (
                                         <button
-                                            onClick={checkAnswer}
-                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition duration-300 text-xl shadow-md active:transform active:scale-95"
+                                            key={cat.id}
+                                            onClick={() => selectCategory(cat.id)}
+                                            className={`relative overflow-hidden group rounded-3xl p-6 text-right transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl bg-white`}
                                         >
-                                            تحقق
+                                            <div className={`absolute top-0 right-0 w-full h-2 bg-gradient-to-r ${cat.color}`}></div>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="text-5xl group-hover:scale-110 transition-transform">{cat.icon}</div>
+                                                {isCompleted && <div className="text-3xl" title="مكتمل">🏆</div>}
+                                            </div>
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">{cat.name}</h2>
+                                            
+                                            <div className="flex items-center justify-between text-sm font-semibold text-gray-500 mt-4">
+                                                <span>{solvedCount} مرحلة محلولة</span>
+                                                <span>{Math.round((solvedCount/20)*100)}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
+                                                <div 
+                                                    className={`h-2 rounded-full bg-gradient-to-r ${cat.color} transition-all duration-500`}
+                                                    style={{ width: `${(solvedCount / 20) * 100}%` }}
+                                                ></div>
+                                            </div>
                                         </button>
-                                    </div>
-                                )}
-                                
-                                {/* تلميح صغير */}
-                                <p className="text-xs text-gray-400 mt-6 text-center">
-                                    *يمكنك الضغط على زر "Enter" في الكيبورد لتأكيد الإجابة.
-                                </p>
+                                    );
+                                })}
+                            </div>
 
+                            <div className="mt-12 text-center">
+                                <button onClick={resetAllProgress} className="text-red-400 hover:text-red-300 underline text-sm">
+                                    إعادة ضبط جميع الإحصائيات (بدء اللعبة من جديد)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // واجهة اللعب داخل القسم المختار
+            const currentCat = categoriesData[activeCategory];
+            const levels = currentCat.levels;
+            const categorySolved = solvedProgress[activeCategory];
+            const isCurrentSolved = categorySolved.includes(currentLevel);
+            const isCategoryFinished = categorySolved.length === levels.length;
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 relative overflow-hidden">
+                    {/* خلفية جمالية تعتمد على لون القسم */}
+                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${currentCat.color}`}></div>
+                    
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 relative z-10">
+                        
+                        {/* زر العودة */}
+                        <button 
+                            onClick={() => setActiveCategory(null)}
+                            className="absolute top-6 left-6 text-gray-500 hover:text-gray-800 flex items-center gap-2 font-bold transition-colors bg-gray-100 px-3 py-1 rounded-lg"
+                        >
+                            <span className="text-xl">&times;</span> خروج
+                        </button>
+
+                        {/* رأس اللعبة والشريط التقدمي */}
+                        <div className="w-full mb-8 text-center mt-8">
+                            <div className="text-4xl mb-2">{currentCat.icon}</div>
+                            <h1 className="text-2xl font-bold text-gray-800 mb-6">{currentCat.name}</h1>
+                            
+                            {/* أزرار التنقل بين المراحل */}
+                            <div className="flex items-center justify-between bg-gray-50 border rounded-2xl p-2 mb-4">
+                                <button 
+                                    onClick={() => changeLevel(Math.max(0, currentLevel - 1))}
+                                    disabled={currentLevel === 0}
+                                    className={`px-4 py-3 rounded-xl font-bold transition ${currentLevel === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-blue-600 hover:bg-white shadow-sm border border-transparent hover:border-gray-200'}`}
+                                >
+                                    &rarr; 
+                                </button>
+                                <span className="font-bold text-gray-700 text-lg">مرحلة {currentLevel + 1}</span>
+                                <button 
+                                    onClick={() => changeLevel(Math.min(levels.length - 1, currentLevel + 1))}
+                                    disabled={currentLevel === levels.length - 1}
+                                    className={`px-4 py-3 rounded-xl font-bold transition ${currentLevel === levels.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-blue-600 hover:bg-white shadow-sm border border-transparent hover:border-gray-200'}`}
+                                >
+                                     &larr;
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm text-gray-500 font-bold mb-2 px-1">
+                                <span>التقدم في هذا القسم:</span>
+                                <span className={isCategoryFinished ? 'text-green-500' : ''}>{categorySolved.length} / {levels.length}</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-3">
+                                <div 
+                                    className={`h-3 rounded-full transition-all duration-700 bg-gradient-to-r ${currentCat.color}`}
+                                    style={{ width: `${(categorySolved.length / levels.length) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        {/* شاشة اكتمال القسم */}
+                        {isCategoryFinished && !justSolved && (
+                            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center mb-6 animate-fade-in">
+                                <div className="text-5xl mb-4">🏆</div>
+                                <h3 className="text-xl font-bold text-green-800 mb-2">أنهيت قسم {currentCat.name}!</h3>
+                                <p className="text-green-600 mb-4">ممتاز، لقد حللت جميع المراحل العشرون.</p>
+                                <button 
+                                    onClick={() => setActiveCategory(null)}
+                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-xl transition"
+                                >
+                                    العودة لاختيار قسم آخر
+                                </button>
+                            </div>
+                        )}
+
+                        {/* الإيموجيز */}
+                        <div className={`bg-gray-50 rounded-2xl w-full py-12 mb-8 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                            <span className={`text-6xl sm:text-7xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
+                                {levels[currentLevel].emojis}
+                            </span>
+                            
+                            {/* زر التلميح - يظهر فقط إذا لم يتم حل المرحلة بعد */}
+                            {!isCurrentSolved && !justSolved && (
+                                <button 
+                                    onClick={() => setShowHintModal(true)}
+                                    className="mt-6 flex items-center gap-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-4 py-2 rounded-full font-bold transition text-sm shadow-sm border border-yellow-300"
+                                >
+                                    💡 تلميح
+                                </button>
+                            )}
+                        </div>
+
+                        {/* حالة الإجابة */}
+                        {justSolved ? (
+                            <div className="w-full text-center py-6 text-green-500 font-bold text-2xl animate-pulse">
+                                إجابة صحيحة! 👏
+                            </div>
+                        ) : isCurrentSolved ? (
+                            <div className="w-full text-center py-5 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold text-xl">
+                                تم حل هذه المرحلة ✅
+                                <div className="text-base font-normal mt-2 text-green-600 bg-white/50 inline-block px-4 py-1 rounded-full">
+                                    الإجابة: {levels[currentLevel].answers[0]}
+                                </div>
+                            </div>
+                        ) : (
+                            /* خانة الإدخال والزر */
+                            <div className={`w-full flex flex-col gap-4 ${shake ? 'animate-shake' : ''}`}>
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={`اكتب اسم الـ ${currentCat.name.replace('أ', 'ا').slice(0, -2)}...`}
+                                    className="w-full text-center text-xl p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition text-gray-800 bg-white"
+                                    autoComplete="off"
+                                />
+                                
+                                <button
+                                    onClick={checkAnswer}
+                                    className={`w-full bg-gradient-to-r ${currentCat.color} hover:opacity-90 text-white font-bold py-4 rounded-xl transition duration-300 text-xl shadow-md active:transform active:scale-95`}
+                                >
+                                    تحقق
+                                </button>
+                            </div>
+                        )}
+                        
+                        {/* نافذة التلميح (Modal) */}
+                        {showHintModal && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 animate-fade-in backdrop-blur-sm">
+                                <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl transform transition-all">
+                                    <div className="text-5xl mb-4">💡</div>
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">تلميح إضافي</h3>
+                                    <p className="text-gray-600 mb-8 text-lg leading-relaxed">
+                                        {levels[currentLevel].hint}
+                                    </p>
+                                    <button 
+                                        onClick={() => setShowHintModal(false)}
+                                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition duration-300"
+                                    >
+                                        إغلاق
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -265,7 +543,6 @@
             );
         }
 
-        // تشغيل التطبيق
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>

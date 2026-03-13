@@ -1,4 +1,4 @@
-Emoji Movie Guesser
+Emoji Guesser
 
 A fun Html game where you guess famous things based on emojis!
 ______________________________________________________
@@ -19,6 +19,6 @@ How to Play
 go to game link
 https://alitaye.github.io/Guess-by-Emojis/
 
-Look at the emojis > Type the answer name > Press Enter!
+Look at the emojis > Pick the answer's letters!
 
 Built for a fun and smooth user experience.

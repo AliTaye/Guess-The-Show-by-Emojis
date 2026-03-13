@@ -12,6 +12,9 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- مكتبة قصاصات الورق الاحتفالية -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- تنسيقات إضافية للاهتزاز والحركات -->
     <style>
@@ -20,7 +23,7 @@
             margin: 0;
             padding: 0;
             background-color: #1e1b4b;
-            touch-action: manipulation; /* لمنع التكبير عند النقر السريع في الجوال */
+            touch-action: manipulation;
         }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -37,6 +40,13 @@
         }
         .animate-fade-in {
             animation: fade-in 0.6s ease-out forwards;
+        }
+        @keyframes fade-out-up {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        .animate-fade-out-up {
+            animation: fade-out-up 0.5s ease-in forwards;
         }
         @keyframes pop {
             0% { transform: scale(0.8); opacity: 0; }
@@ -68,7 +78,58 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // قاعدة بيانات اللعبة (تم الاعتماد على أول إجابة كإجابة رئيسية للغز)
+        // --- نظام المؤثرات الصوتية البسيط والفعال ---
+        const playSound = (type) => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+                    gain.setValueAtTime(0.05, ctx.currentTime);
+                    gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                    osc.start(); osc.stop(ctx.currentTime + 0.1);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, ctx.currentTime);
+                    osc.frequency.setValueAtTime(600, ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+                    gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+                    osc.start(); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+                    osc.start(); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'win') {
+                    osc.type = 'square';
+                    [400, 500, 600, 800, 1000].forEach((freq, i) => {
+                        setTimeout(() => {
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.connect(g); g.connect(ctx.destination);
+                            o.frequency.value = freq;
+                            g.setValueAtTime(0.1, ctx.currentTime);
+                            g.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+                            o.start(); o.stop(ctx.currentTime + 0.2);
+                        }, i * 150);
+                    });
+                }
+            } catch (e) {
+                console.log("Audio not supported or blocked");
+            }
+        };
+
+        // قاعدة بيانات اللعبة
         const categoriesData = {
             movies: {
                 id: 'movies', name: 'أفلام', icon: '🎬', color: 'from-blue-500 to-indigo-600',
@@ -194,17 +255,47 @@
                     { emojis: '⚕️📚👳‍♂️', answers: ['ابن سينا'], hint: 'طبيب وعالم مسلم صاحب كتاب القانون في الطب' },
                     { emojis: '👩‍🔬☢️🏆', answers: ['ماري كوري'], hint: 'عالمة فيزياء وكيمياء فازت بجائزتي نوبل' },
                 ]
+            },
+            brands: {
+                id: 'brands', name: 'ماركات وشركات', icon: '🏷️', color: 'from-pink-500 to-rose-500',
+                levels: [
+                    { emojis: '🍎📱💻', answers: ['ابل'], hint: 'شركة هواتف ذكية وحواسيب شهيرة بشعار الفاكهة' },
+                    { emojis: '☕🧜‍♀️🟢', answers: ['ستاربكس'], hint: 'مقهى عالمي شهير بشعاره الأخضر' },
+                    { emojis: '🚗🐎🔴', answers: ['فيراري'], hint: 'سيارات رياضية إيطالية فارهة بشعار الحصان' },
+                    { emojis: '👟✔️🏃‍♂️', answers: ['نايكي'], hint: 'ماركة رياضية شهيرة بعلامة (الصح)' },
+                    { emojis: '🍔🍟🤡', answers: ['ماكدونالدز'], hint: 'أشهر سلسلة مطاعم للوجبات السريعة' },
+                    { emojis: '🥤🔴⚪', answers: ['كوكاكولا'], hint: 'مشروب غازي شهير باللون الأحمر' },
+                    { emojis: '🚗🔋🔌', answers: ['تسلا'], hint: 'رائدة صناعة السيارات الكهربائية' },
+                    { emojis: '💻🪟🟦', answers: ['مايكروسوفت'], hint: 'شركة برمجيات ونظام التشغيل ويندوز' },
+                    { emojis: '📦🚚😃', answers: ['امازون'], hint: 'أكبر متجر إلكتروني في العالم بعلامة ابتسامة' },
+                    { emojis: '👟🏎️🐆', answers: ['بوما'], hint: 'ماركة رياضية تحمل اسم فهد' },
+                    { emojis: '🚗🐂🟡', answers: ['لامبورغيني'], hint: 'سيارة رياضية خارقة بشعار الثور الهائج' },
+                    { emojis: '🎮🟦🇯🇵', answers: ['سوني'], hint: 'الشركة المصنعة لجهاز البلايستيشن' },
+                    { emojis: '📱🇰🇷🔵', answers: ['سامسونج'], hint: 'عملاق التكنولوجيا الكوري الجنوبي' },
+                    { emojis: '📺🎬🔴', answers: ['نتفليكس'], hint: 'منصة عالمية لمشاهدة الأفلام والمسلسلات' },
+                    { emojis: '✈️🇦🇪🔴', answers: ['طيران الامارات'], hint: 'واحدة من أكبر شركات الطيران في العالم' },
+                    { emojis: '🚗🇩🇪⭕', answers: ['اودي'], hint: 'سيارة ألمانية بشعار الأربع حلقات المتداخلة' },
+                    { emojis: '⌚👑🇨🇭', answers: ['رولكس'], hint: 'أفخم وأشهر ماركة ساعات سويسرية' },
+                    { emojis: '👕🐊🟢', answers: ['لاكوست'], hint: 'ماركة ملابس شهيرة بشعار التمساح' },
+                    { emojis: '🏰🐭🎢', answers: ['ديزني'], hint: 'أكبر شركة ترفيه وصانعة أفلام الكرتون' },
+                    { emojis: '💻🔍🌐', answers: ['جوجل'], hint: 'أشهر محرك بحث في العالم' },
+                ]
             }
         };
 
         const ARABIC_ALPHABET = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويأإآؤئة';
 
         function App() {
-            // حالة التقدم
+            // حالة التقدم والعملات
             const [solvedProgress, setSolvedProgress] = useState(() => {
-                const saved = localStorage.getItem('emojiGameProgress_v3');
+                const saved = localStorage.getItem('emojiGameProgress_v4');
                 if (saved) return JSON.parse(saved);
-                return { movies: [], series: [], games: [], football: [], history: [] };
+                return { movies: [], series: [], games: [], football: [], history: [], brands: [] };
+            });
+
+            const [coins, setCoins] = useState(() => {
+                const savedCoins = localStorage.getItem('emojiGameCoins_v4');
+                return savedCoins !== null ? parseInt(savedCoins, 10) : 50; // رصيد البداية 50 عملة
             });
 
             // حالة اللعبة الأساسية
@@ -213,56 +304,48 @@
             const [justSolved, setJustSolved] = useState(false);
             const [shake, setShake] = useState(false);
             const [showHintModal, setShowHintModal] = useState(false);
+            const [toastMessage, setToastMessage] = useState(null);
 
-            // حالات نظام الألغاز الجديد
-            const [targetWordOriginal, setTargetWordOriginal] = useState(''); // الكلمة كاملة بالمسافات (للعرض)
-            const [targetWordLetters, setTargetWordLetters] = useState(''); // الكلمة بدون مسافات (للتحقق)
-            const [availableLetters, setAvailableLetters] = useState([]); // الحروف المتاحة للاختيار
-            const [selectedSlots, setSelectedSlots] = useState([]); // الخانات المعبأة
+            // حالات نظام الألغاز
+            const [targetWordOriginal, setTargetWordOriginal] = useState('');
+            const [targetWordLetters, setTargetWordLetters] = useState('');
+            const [availableLetters, setAvailableLetters] = useState([]);
+            const [selectedSlots, setSelectedSlots] = useState([]);
 
-            // حفظ التقدم
+            // حفظ التقدم والعملات
             useEffect(() => {
-                localStorage.setItem('emojiGameProgress_v3', JSON.stringify(solvedProgress));
-            }, [solvedProgress]);
+                localStorage.setItem('emojiGameProgress_v4', JSON.stringify(solvedProgress));
+                localStorage.setItem('emojiGameCoins_v4', coins.toString());
+            }, [solvedProgress, coins]);
 
-            // إعداد اللغز عند تغيير المرحلة أو القسم
+            // إعداد اللغز عند تغيير المرحلة
             useEffect(() => {
                 if (!activeCategory) return;
                 
                 const level = categoriesData[activeCategory].levels[currentLevel];
-                // نعتمد الإجابة الأولى دائماً كإجابة للغز
                 const answer = level.answers[0]; 
                 
                 setTargetWordOriginal(answer);
                 
-                // استخراج الحروف فقط بدون المسافات لمعرفة عدد الخانات المطلوبة
                 const answerLettersOnly = answer.replace(/ /g, '');
                 setTargetWordLetters(answerLettersOnly);
-                
-                // تفريغ الخانات بناءً على عدد الحروف
                 setSelectedSlots(Array(answerLettersOnly.length).fill(null));
 
-                // بناء شبكة الحروف العشوائية (14 حرف كحد أدنى، تزيد إذا كانت الكلمة طويلة)
                 const gridLength = Math.max(14, answerLettersOnly.length + 3);
                 let charArray = answerLettersOnly.split('');
                 
-                // إضافة حروف عشوائية حتى يكتمل العدد المطلوب
                 while(charArray.length < gridLength) {
                     const randomChar = ARABIC_ALPHABET[Math.floor(Math.random() * ARABIC_ALPHABET.length)];
                     charArray.push(randomChar);
                 }
 
-                // خلط الحروف
                 for (let i = charArray.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [charArray[i], charArray[j]] = [charArray[j], charArray[i]];
                 }
 
-                // تجهيز كائنات الحروف لتتبع حالتها (مستخدمة أم لا)
                 setAvailableLetters(charArray.map((char, index) => ({
-                    id: index,
-                    char: char,
-                    isUsed: false
+                    id: index, char: char, isUsed: false, isRemoved: false
                 })));
 
                 setShake(false);
@@ -270,36 +353,41 @@
 
             }, [activeCategory, currentLevel]);
 
+            // عرض رسائل التنبيه المؤقتة (Toast)
+            const showToast = (message) => {
+                setToastMessage(message);
+                setTimeout(() => setToastMessage(null), 3000);
+            };
+
             // التحقق التلقائي عند تعبئة جميع الخانات
             useEffect(() => {
-                // 1. التأكد من وجود بيانات وعدم وجود فراغات
-                if (!activeCategory || !targetWordLetters || selectedSlots.includes(null)) return;
-                
-                // 2. منع التحقق إذا كنا في مرحلة تم حلها للتو لتجنب تجاوز المراحل
-                if (justSolved) return;
+                if (!activeCategory || !targetWordLetters || selectedSlots.includes(null) || justSolved) return;
 
-                // 3. جلب الإجابة المتوقعة للمرحلة الحالية مباشرة للحماية من تداخل الـ State
                 const currentLevelData = categoriesData[activeCategory].levels[currentLevel];
                 const expectedAnswer = currentLevelData.answers[0].replace(/ /g, '');
 
-                // 4. التأكد من أن النظام قام بتحديث الكلمة المستهدفة بالكامل
-                if (targetWordLetters !== expectedAnswer) return;
-
-                // 5. التأكد من أن عدد الخانات الحالية يطابق الإجابة (لضمان عدم قراءة خانات المرحلة السابقة)
-                if (selectedSlots.length !== expectedAnswer.length) return;
+                if (targetWordLetters !== expectedAnswer || selectedSlots.length !== expectedAnswer.length) return;
 
                 const currentGuess = selectedSlots.map(slot => slot.char).join('');
 
                 if (currentGuess === expectedAnswer) {
-                    // إجابة صحيحة
+                    playSound('correct');
+                    const isNewSolve = !solvedProgress[activeCategory].includes(currentLevel);
                     const updatedCategoryProgress = [...new Set([...solvedProgress[activeCategory], currentLevel])];
-                    setSolvedProgress(prev => ({
-                        ...prev,
-                        [activeCategory]: updatedCategoryProgress
-                    }));
+                    
+                    if (isNewSolve) {
+                        setCoins(prev => prev + 10); // مكافأة 10 عملات
+                    }
+
+                    setSolvedProgress(prev => ({ ...prev, [activeCategory]: updatedCategoryProgress }));
                     setJustSolved(true);
 
-                    // الانتقال التلقائي
+                    // الاحتفال إذا أكمل القسم
+                    if (updatedCategoryProgress.length === categoriesData[activeCategory].levels.length && isNewSolve) {
+                        playSound('win');
+                        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    }
+
                     setTimeout(() => {
                         const categoryLevels = categoriesData[activeCategory].levels;
                         if (updatedCategoryProgress.length < categoryLevels.length) {
@@ -311,58 +399,176 @@
                         }
                     }, 1500);
                 } else {
-                    // إجابة خاطئة
+                    playSound('wrong');
                     setShake(true);
                     
-                    // تفريغ الخانات تلقائياً بعد الاهتزاز ليحاول مرة أخرى
                     setTimeout(() => {
                         setShake(false);
-                        setSelectedSlots(Array(expectedAnswer.length).fill(null));
-                        setAvailableLetters(prev => prev.map(l => ({ ...l, isUsed: false })));
+                        // تفريغ الخانات غير المقفلة (المكشوفة بوسيلة المساعدة) فقط
+                        setSelectedSlots(prevSlots => prevSlots.map(slot => slot && slot.locked ? slot : null));
+                        // إعادة الحروف للشبكة ما لم تكن محذوفة أو مقفلة
+                        setAvailableLetters(prev => prev.map(l => {
+                            const isLockedInSlot = selectedSlots.some(s => s && s.id === l.id && s.locked);
+                            return (isLockedInSlot || l.isRemoved) ? l : { ...l, isUsed: false };
+                        }));
                     }, 800);
                 }
             }, [selectedSlots, activeCategory, currentLevel, solvedProgress, targetWordLetters, justSolved]);
 
             // عند النقر على حرف متاح
             const handleLetterClick = (letterObj) => {
-                if (letterObj.isUsed || solvedProgress[activeCategory].includes(currentLevel)) return;
-
+                if (letterObj.isUsed || letterObj.isRemoved || solvedProgress[activeCategory].includes(currentLevel)) return;
+                
                 const firstEmptyIndex = selectedSlots.findIndex(slot => slot === null);
                 if (firstEmptyIndex !== -1) {
-                    // تعبئة الخانة
+                    playSound('click');
                     const newSlots = [...selectedSlots];
                     newSlots[firstEmptyIndex] = letterObj;
                     setSelectedSlots(newSlots);
 
-                    // إخفاء الحرف من الشبكة السفلية
                     setAvailableLetters(prev => prev.map(l => 
                         l.id === letterObj.id ? { ...l, isUsed: true } : l
                     ));
                 }
             };
 
-            // عند النقر على خانة معبأة لإرجاع الحرف
+            // عند النقر على خانة معبأة
             const handleSlotClick = (index) => {
                 const slotObj = selectedSlots[index];
-                if (!slotObj || solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
-
-                // إرجاع الحرف للشبكة السفلية
+                // منع إرجاع الحرف إذا كانت الخانة مقفلة (تم كشفها بالمساعدة)
+                if (!slotObj || slotObj.locked || solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                
+                playSound('click');
                 setAvailableLetters(prev => prev.map(l => 
                     l.id === slotObj.id ? { ...l, isUsed: false } : l
                 ));
 
-                // تفريغ الخانة
                 const newSlots = [...selectedSlots];
                 newSlots[index] = null;
                 setSelectedSlots(newSlots);
             };
 
+            // وسائل المساعدة 1: كشف حرف صحيح
+            const handleRevealLetter = () => {
+                if (solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                if (coins < 20) {
+                    showToast('🪙 عذراً، رصيدك من العملات لا يكفي!');
+                    return;
+                }
+                
+                const firstEmptyIndex = selectedSlots.findIndex(slot => slot === null);
+                if (firstEmptyIndex === -1) return; // جميع الخانات ممتلئة
+
+                playSound('click');
+                setCoins(prev => prev - 20);
+                const expectedChar = targetWordLetters[firstEmptyIndex];
+
+                const letterIndex = availableLetters.findIndex(l => l.char === expectedChar && !l.isUsed && !l.isRemoved);
+                if (letterIndex !== -1) {
+                    const letterObj = availableLetters[letterIndex];
+
+                    setAvailableLetters(prev => {
+                        const next = [...prev];
+                        next[letterIndex] = { ...next[letterIndex], isUsed: true };
+                        return next;
+                    });
+
+                    setSelectedSlots(prev => {
+                        const next = [...prev];
+                        next[firstEmptyIndex] = { ...letterObj, locked: true }; // قفل الحرف
+                        return next;
+                    });
+                }
+            };
+
+            // وسائل المساعدة 2: حذف 3 حروف خاطئة
+            const handleRemoveWrongLetters = () => {
+                if (solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                if (coins < 30) {
+                    showToast('🪙 عذراً، رصيدك من العملات لا يكفي!');
+                    return;
+                }
+
+                // تحديد الحروف الممكن حذفها (تلك التي ليست من ضمن الإجابة أو زائدة عن الحاجة)
+                const targetCharsCount = {};
+                for(let c of targetWordLetters) {
+                    targetCharsCount[c] = (targetCharsCount[c] || 0) + 1;
+                }
+
+                const currentCounts = { ...targetCharsCount };
+                const essentialIds = new Set();
+                
+                // تحديد الحروف الأساسية التي لا يمكن حذفها
+                availableLetters.forEach(l => {
+                    if(currentCounts[l.char] > 0 && !l.isRemoved && (!l.isUsed || (l.isUsed && selectedSlots.some(s => s?.id === l.id && s.locked)))) {
+                        essentialIds.add(l.id);
+                        currentCounts[l.char]--;
+                    }
+                });
+
+                // تجميع معرفات الحروف القابلة للحذف
+                const removableIds = [];
+                availableLetters.forEach(l => {
+                    if(!essentialIds.has(l.id) && !l.isUsed && !l.isRemoved) {
+                        removableIds.push(l.id);
+                    }
+                });
+
+                if (removableIds.length === 0) {
+                    showToast('لا يوجد حروف خاطئة إضافية لحذفها!');
+                    return;
+                }
+
+                playSound('click');
+                setCoins(prev => prev - 30);
+                
+                // اختيار ما يصل إلى 3 حروف عشوائياً لحذفها
+                const toRemove = removableIds.sort(() => Math.random() - 0.5).slice(0, 3);
+                
+                setAvailableLetters(prev => prev.map(l => 
+                    toRemove.includes(l.id) ? { ...l, isUsed: true, isRemoved: true } : l
+                ));
+            };
+
+            // مشاركة اللغز
+            const handleShare = () => {
+                playSound('click');
+                const emojis = categoriesData[activeCategory].levels[currentLevel].emojis;
+                const text = `أنا عالق في هذه المرحلة من لعبة "تحدي الإيموجي" 🧠\nهل يمكنك معرفة الإجابة؟ ${emojis}`;
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast('تم النسخ! شارك اللغز الآن مع أصدقائك 📤');
+                    }).catch(() => fallbackCopyTextToClipboard(text));
+                } else {
+                    fallbackCopyTextToClipboard(text);
+                }
+            };
+
+            const fallbackCopyTextToClipboard = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('تم النسخ! شارك اللغز الآن مع أصدقائك 📤');
+                } catch (err) {
+                    showToast('فشل النسخ تلقائياً!');
+                }
+                document.body.removeChild(textArea);
+            };
+
             const changeLevel = (newLevel) => {
+                playSound('click');
                 setCurrentLevel(newLevel);
                 setShowHintModal(false);
             };
 
             const selectCategory = (categoryId) => {
+                playSound('click');
                 setActiveCategory(categoryId);
                 const categorySolved = solvedProgress[categoryId];
                 const totalLevels = categoriesData[categoryId].levels.length;
@@ -381,41 +587,51 @@
 
             const resetAllProgress = () => {
                 if (window.confirm('هل أنت متأكد أنك تريد حذف جميع تقدمك والبدء من جديد؟')) {
-                    setSolvedProgress({ movies: [], series: [], games: [], football: [], history: [] });
+                    setSolvedProgress({ movies: [], series: [], games: [], football: [], history: [], brands: [] });
+                    setCoins(50);
                     setActiveCategory(null);
                 }
             };
 
-            // واجهة اختيار الأقسام (كما هي تقريباً)
+            // واجهة اختيار الأقسام
             if (!activeCategory) {
+                const totalLevelsCount = Object.keys(categoriesData).length * 20; // 6 * 20 = 120
                 const totalSolved = Object.values(solvedProgress).reduce((acc, curr) => acc + curr.length, 0);
-                const isMaster = totalSolved === 100;
+                const isMaster = totalSolved === totalLevelsCount;
 
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4 sm:p-8">
                         <div className="max-w-5xl mx-auto">
+                            {/* شريط العملات العلوي */}
+                            <div className="flex justify-end mb-4 px-2">
+                                <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 border-2 border-yellow-200">
+                                    <span className="text-xl">🪙</span>
+                                    <span>{coins} عملة</span>
+                                </div>
+                            </div>
+
                             <div className="text-center mb-10 animate-fade-in">
                                 <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 drop-shadow-lg">تحدي الإيموجي 🧠✨</h1>
-                                <p className="text-indigo-200 text-lg mb-6">اختر القسم وابدأ التحدي.. لديك 100 مرحلة!</p>
+                                <p className="text-indigo-200 text-lg mb-6">اختر القسم وابدأ التحدي.. لديك {totalLevelsCount} مرحلة!</p>
                                 
                                 <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm max-w-xl mx-auto border border-white/20">
                                     <div className="flex justify-between text-white font-bold mb-2">
                                         <span>التقدم الإجمالي</span>
-                                        <span className={isMaster ? 'text-yellow-400' : ''}>{totalSolved} / 100</span>
+                                        <span className={isMaster ? 'text-yellow-400' : ''}>{totalSolved} / {totalLevelsCount}</span>
                                     </div>
                                     <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
                                         <div 
                                             className="bg-gradient-to-r from-blue-400 to-emerald-400 h-4 rounded-full transition-all duration-1000"
-                                            style={{ width: `${totalSolved}%` }}
+                                            style={{ width: `${(totalSolved / totalLevelsCount) * 100}%` }}
                                         ></div>
                                     </div>
-                                    {isMaster && <p className="text-yellow-400 mt-2 font-bold animate-pulse">👑يا فنااااااااااااااااااان خلصت كل المراحل👑</p>}
+                                    {isMaster && <p className="text-yellow-400 mt-2 font-bold animate-pulse">👑يا فنااااااااااااااااااان ختمت اللعبة👑</p>}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {Object.values(categoriesData).map((cat) => {
-                                    const solvedCount = solvedProgress[cat.id].length;
+                                    const solvedCount = solvedProgress[cat.id]?.length || 0;
                                     const isCompleted = solvedCount === 20;
 
                                     return (
@@ -456,10 +672,10 @@
                 );
             }
 
-            // واجهة اللعب (التحديث الجديد للألغاز)
+            // واجهة اللعب
             const currentCat = categoriesData[activeCategory];
             const levels = currentCat.levels;
-            const categorySolved = solvedProgress[activeCategory];
+            const categorySolved = solvedProgress[activeCategory] || [];
             const isCurrentSolved = categorySolved.includes(currentLevel);
             const isCategoryFinished = categorySolved.length === levels.length;
 
@@ -467,7 +683,14 @@
                 <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-gray-50 relative overflow-hidden">
                     <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${currentCat.color}`}></div>
                     
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-8 relative z-10 flex flex-col h-[95vh] sm:h-auto max-h-[900px]">
+                    {/* شريط الإشعارات (Toast) */}
+                    {toastMessage && (
+                        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl font-bold animate-fade-in text-sm sm:text-base text-center w-max max-w-[90vw]">
+                            {toastMessage}
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-8 relative z-10 flex flex-col h-[95vh] sm:h-auto max-h-[950px]">
                         
                         {/* الهيدر وزر الخروج */}
                         <div className="flex justify-between items-center mb-6">
@@ -477,8 +700,15 @@
                             >
                                 <span className="text-lg leading-none">&times;</span> خروج
                             </button>
-                            <div className="text-sm font-bold text-gray-400">
-                                {categorySolved.length} / {levels.length}
+                            
+                            <div className="flex gap-4 items-center">
+                                <div className="text-sm font-bold text-gray-400">
+                                    {categorySolved.length} / {levels.length}
+                                </div>
+                                <div className="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full font-bold text-sm flex items-center gap-1 border border-yellow-200">
+                                    <span>{coins}</span>
+                                    <span>🪙</span>
+                                </div>
                             </div>
                         </div>
 
@@ -513,37 +743,38 @@
                         </div>
 
                         {/* قسم الإيموجي */}
-                        <div className={`bg-gray-50 rounded-2xl w-full py-8 mb-6 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                        <div className={`bg-gray-50 rounded-2xl w-full py-6 sm:py-8 mb-4 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
                             <span className={`text-5xl sm:text-6xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
                                 {levels[currentLevel].emojis}
                             </span>
                             
                             {!isCurrentSolved && !justSolved && (
                                 <button 
-                                    onClick={() => setShowHintModal(true)}
+                                    onClick={() => { playSound('click'); setShowHintModal(true); }}
                                     className="mt-4 flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-full font-bold transition text-xs shadow-sm border border-yellow-300"
                                 >
-                                    💡 تلميح
+                                    💡 تلميح مجاني
                                 </button>
                             )}
                         </div>
 
-                        {/* منطقة اللعب السفلية (الخانات والحروف) */}
+                        {/* منطقة اللعب السفلية */}
                         <div className="flex-grow flex flex-col justify-end">
                             {isCategoryFinished && !justSolved ? (
                                 <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center animate-fade-in mb-4">
                                     <div className="text-4xl mb-4">🏆</div>
                                     <h3 className="text-xl font-bold text-green-800 mb-2">أنهيت قسم {currentCat.name}!</h3>
                                     <button 
-                                        onClick={() => setActiveCategory(null)}
-                                        className="mt-4 bg-green-600 text-white font-bold py-2 px-6 rounded-xl w-full"
+                                        onClick={() => { playSound('click'); setActiveCategory(null); }}
+                                        className="mt-4 bg-green-600 text-white font-bold py-2 px-6 rounded-xl w-full hover:bg-green-700 transition"
                                     >
                                         العودة للقائمة
                                     </button>
                                 </div>
                             ) : justSolved ? (
-                                <div className="w-full text-center py-6 text-green-500 font-bold text-2xl animate-pulse flex-grow flex items-center justify-center">
-                                    إجابة صحيحة! 👏
+                                <div className="w-full text-center py-6 text-green-500 font-bold text-xl sm:text-2xl animate-pulse flex-grow flex flex-col items-center justify-center gap-2">
+                                    <span>إجابة صحيحة! 👏</span>
+                                    {!categorySolved.includes(currentLevel) && <span className="text-yellow-500 text-sm bg-yellow-100 px-3 py-1 rounded-full">+10 عملات 🪙</span>}
                                 </div>
                             ) : isCurrentSolved ? (
                                 <div className="w-full text-center py-5 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold flex-grow flex flex-col items-center justify-center gap-2">
@@ -553,20 +784,15 @@
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-6 sm:gap-8">
+                                <div className="flex flex-col gap-4 sm:gap-6">
                                     
                                     {/* 1. خانات الإجابة */}
                                     <div className={`flex flex-wrap justify-center gap-x-1.5 gap-y-3 sm:gap-2 dir-rtl ${shake ? 'animate-shake' : ''}`}>
                                         {(() => {
                                             let letterIndex = 0;
-                                            // نقوم بالمرور على الكلمة الأصلية للحفاظ على المسافات في العرض
                                             return targetWordOriginal.split('').map((char, index) => {
-                                                if (char === ' ') {
-                                                    // مسافة فارغة تفصل بين الكلمات
-                                                    return <div key={`space-${index}`} className="w-3 sm:w-5"></div>;
-                                                }
+                                                if (char === ' ') return <div key={`space-${index}`} className="w-3 sm:w-5"></div>;
                                                 
-                                                // خانة حرف
                                                 const currentIndex = letterIndex++;
                                                 const slotData = selectedSlots[currentIndex];
                                                 
@@ -574,9 +800,9 @@
                                                     <div 
                                                         key={`slot-${currentIndex}`} 
                                                         onClick={() => handleSlotClick(currentIndex)}
-                                                        className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-bold rounded-xl border-b-4 transition-all cursor-pointer select-none
+                                                        className={`w-9 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-bold rounded-xl border-b-4 transition-all select-none
                                                             ${slotData 
-                                                                ? 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md' 
+                                                                ? (slotData.locked ? 'bg-green-500 border-green-700 text-white shadow-md' : 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md cursor-pointer') 
                                                                 : 'bg-gray-100 border-gray-300 text-transparent'
                                                             }`}
                                                     >
@@ -587,16 +813,32 @@
                                         })()}
                                     </div>
 
+                                    {/* وسائل المساعدة الإضافية */}
+                                    <div className="flex justify-center gap-2 sm:gap-3 px-1 mt-1 mb-1">
+                                        <button onClick={handleRevealLetter} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center gap-1 transition-colors active:bg-gray-100">
+                                            <span>🔍 كشف حرف</span>
+                                            <span className="text-yellow-600 font-extrabold">20 🪙</span>
+                                        </button>
+                                        <button onClick={handleRemoveWrongLetters} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center gap-1 transition-colors active:bg-gray-100">
+                                            <span>💣 حذف 3 أحرف</span>
+                                            <span className="text-yellow-600 font-extrabold">30 🪙</span>
+                                        </button>
+                                        <button onClick={handleShare} className="flex-1 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-90 active:scale-95">
+                                            <span className="text-base sm:text-lg">📤</span>
+                                            <span>تحدى أصدقاءك</span>
+                                        </button>
+                                    </div>
+
                                     {/* 2. شبكة الحروف المتاحة */}
-                                    <div className="grid grid-cols-7 gap-2 sm:gap-3 bg-gray-100 p-3 sm:p-4 rounded-2xl border border-gray-200">
+                                    <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-gray-100 p-2 sm:p-4 rounded-2xl border border-gray-200">
                                         {availableLetters.map((letterObj) => (
                                             <button
                                                 key={`letter-${letterObj.id}`}
                                                 onClick={() => handleLetterClick(letterObj)}
-                                                disabled={letterObj.isUsed}
+                                                disabled={letterObj.isUsed || letterObj.isRemoved}
                                                 className={`h-11 sm:h-14 rounded-lg sm:rounded-xl text-lg sm:text-2xl font-bold flex items-center justify-center transition-all select-none
-                                                    ${letterObj.isUsed 
-                                                        ? 'bg-transparent text-transparent opacity-0 scale-75' 
+                                                    ${(letterObj.isUsed || letterObj.isRemoved) 
+                                                        ? 'bg-transparent text-transparent opacity-0 scale-75 pointer-events-none' 
                                                         : 'bg-white text-gray-800 border-b-4 border-gray-300 hover:bg-blue-50 hover:border-blue-300 active:border-b-0 active:translate-y-1 shadow-sm'
                                                     }`}
                                             >
@@ -619,7 +861,7 @@
                                         {levels[currentLevel].hint}
                                     </p>
                                     <button 
-                                        onClick={() => setShowHintModal(false)}
+                                        onClick={() => { playSound('click'); setShowHintModal(false); }}
                                         className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition"
                                     >
                                         إغلاق

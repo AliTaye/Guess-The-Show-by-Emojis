@@ -5,11 +5,11 @@ ______________________________________________________
 
 Features
 
-100 Levels: Supports both English & Arabic answers.
+120 Levels
 
-Smart Input: Forgives common spelling mistakes.
+Helping methods (Pick 1 right letter, Delete 3 wrong letters)
 
-Flexible Play: Skip levels, track progress, and use Enter to submit.
+Flexible Play: Skip levels, track progress.
 
 Interactive: Visual feedback, animations, and a victory screen.
 ______________________________________________________

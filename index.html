@@ -331,7 +331,8 @@
                 setTargetWordLetters(answerLettersOnly);
                 setSelectedSlots(Array(answerLettersOnly.length).fill(null));
 
-                const gridLength = Math.max(14, answerLettersOnly.length + 3);
+                // 3 صفوف و 6 أعمدة = 18 حرف دائماً
+                const gridLength = 18;
                 let charArray = answerLettersOnly.split('');
                 
                 while(charArray.length < gridLength) {
@@ -690,10 +691,10 @@
                         </div>
                     )}
 
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-8 relative z-10 flex flex-col h-[95vh] sm:h-auto max-h-[950px]">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-6 relative z-10 flex flex-col h-[95vh] sm:h-auto max-h-[950px]">
                         
                         {/* الهيدر وزر الخروج */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-5">
                             <button 
                                 onClick={() => setActiveCategory(null)}
                                 className="text-gray-500 hover:text-gray-800 flex items-center gap-2 font-bold transition-colors bg-gray-100 px-3 py-2 rounded-lg text-sm"
@@ -713,45 +714,45 @@
                         </div>
 
                         {/* رأس اللعبة والتنقل */}
-                        <div className="w-full text-center mb-4">
+                        <div className="w-full text-center mb-3">
                             <div className="text-3xl mb-1">{currentCat.icon}</div>
                             
                             <div className="flex items-center justify-between bg-gray-50 border rounded-2xl p-1 mb-2">
                                 <button 
                                     onClick={() => changeLevel(Math.max(0, currentLevel - 1))}
                                     disabled={currentLevel === 0}
-                                    className={`px-3 py-2 rounded-xl font-bold transition ${currentLevel === 0 ? 'text-gray-300' : 'text-blue-600 hover:bg-white shadow-sm'}`}
+                                    className={`px-3 py-1.5 rounded-xl font-bold transition ${currentLevel === 0 ? 'text-gray-300' : 'text-blue-600 hover:bg-white shadow-sm'}`}
                                 >
                                     &rarr; 
                                 </button>
-                                <span className="font-bold text-gray-700">مرحلة {currentLevel + 1}</span>
+                                <span className="font-bold text-gray-700 text-sm">مرحلة {currentLevel + 1}</span>
                                 <button 
                                     onClick={() => changeLevel(Math.min(levels.length - 1, currentLevel + 1))}
                                     disabled={currentLevel === levels.length - 1}
-                                    className={`px-3 py-2 rounded-xl font-bold transition ${currentLevel === levels.length - 1 ? 'text-gray-300' : 'text-blue-600 hover:bg-white shadow-sm'}`}
+                                    className={`px-3 py-1.5 rounded-xl font-bold transition ${currentLevel === levels.length - 1 ? 'text-gray-300' : 'text-blue-600 hover:bg-white shadow-sm'}`}
                                 >
                                      &larr;
                                 </button>
                             </div>
                             
-                            <div className="w-full bg-gray-100 rounded-full h-2">
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
                                 <div 
-                                    className={`h-2 rounded-full transition-all duration-700 bg-gradient-to-r ${currentCat.color}`}
+                                    className={`h-1.5 rounded-full transition-all duration-700 bg-gradient-to-r ${currentCat.color}`}
                                     style={{ width: `${(categorySolved.length / levels.length) * 100}%` }}
                                 ></div>
                             </div>
                         </div>
 
                         {/* قسم الإيموجي */}
-                        <div className={`bg-gray-50 rounded-2xl w-full py-6 sm:py-8 mb-4 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
-                            <span className={`text-5xl sm:text-6xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
+                        <div className={`bg-gray-50 rounded-2xl w-full py-5 sm:py-6 mb-4 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                            <span className={`text-4xl sm:text-5xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
                                 {levels[currentLevel].emojis}
                             </span>
                             
                             {!isCurrentSolved && !justSolved && (
                                 <button 
                                     onClick={() => { playSound('click'); setShowHintModal(true); }}
-                                    className="mt-4 flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-full font-bold transition text-xs shadow-sm border border-yellow-300"
+                                    className="mt-3 flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-full font-bold transition text-xs shadow-sm border border-yellow-300"
                                 >
                                     💡 تلميح مجاني
                                 </button>
@@ -778,20 +779,20 @@
                                 </div>
                             ) : isCurrentSolved ? (
                                 <div className="w-full text-center py-5 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold flex-grow flex flex-col items-center justify-center gap-2">
-                                    <span className="text-xl">تم حل هذه المرحلة ✅</span>
+                                    <span className="text-lg">تم حل هذه المرحلة ✅</span>
                                     <div className="text-lg font-bold text-green-800 bg-white/60 px-6 py-2 rounded-full mt-2">
                                         {targetWordOriginal}
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4 sm:gap-6">
+                                <div className="flex flex-col gap-3 sm:gap-4">
                                     
                                     {/* 1. خانات الإجابة */}
-                                    <div className={`flex flex-wrap justify-center gap-x-1.5 gap-y-3 sm:gap-2 dir-rtl ${shake ? 'animate-shake' : ''}`}>
+                                    <div className={`flex flex-wrap justify-center gap-x-1 gap-y-2 sm:gap-1.5 dir-rtl ${shake ? 'animate-shake' : ''}`}>
                                         {(() => {
                                             let letterIndex = 0;
                                             return targetWordOriginal.split('').map((char, index) => {
-                                                if (char === ' ') return <div key={`space-${index}`} className="w-3 sm:w-5"></div>;
+                                                if (char === ' ') return <div key={`space-${index}`} className="w-3 sm:w-4"></div>;
                                                 
                                                 const currentIndex = letterIndex++;
                                                 const slotData = selectedSlots[currentIndex];
@@ -800,7 +801,7 @@
                                                     <div 
                                                         key={`slot-${currentIndex}`} 
                                                         onClick={() => handleSlotClick(currentIndex)}
-                                                        className={`w-9 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-bold rounded-xl border-b-4 transition-all select-none
+                                                        className={`w-8 h-9 sm:w-10 sm:h-11 flex items-center justify-center text-lg sm:text-xl font-bold rounded-lg border-b-4 transition-all select-none
                                                             ${slotData 
                                                                 ? (slotData.locked ? 'bg-green-500 border-green-700 text-white shadow-md' : 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md cursor-pointer') 
                                                                 : 'bg-gray-100 border-gray-300 text-transparent'
@@ -814,29 +815,28 @@
                                     </div>
 
                                     {/* وسائل المساعدة الإضافية */}
-                                    <div className="flex justify-center gap-2 sm:gap-3 px-1 mt-1 mb-1">
-                                        <button onClick={handleRevealLetter} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center gap-1 transition-colors active:bg-gray-100">
+                                    <div className="flex justify-center gap-2 sm:gap-3 px-1 my-1">
+                                        <button onClick={handleRevealLetter} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
                                             <span>🔍 كشف حرف</span>
-                                            <span className="text-yellow-600 font-extrabold">20 🪙</span>
+                                            <span className="text-yellow-600 font-extrabold text-xs">20 🪙</span>
                                         </button>
-                                        <button onClick={handleRemoveWrongLetters} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center gap-1 transition-colors active:bg-gray-100">
+                                        <button onClick={handleRemoveWrongLetters} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
                                             <span>💣 حذف 3 أحرف</span>
-                                            <span className="text-yellow-600 font-extrabold">30 🪙</span>
+                                            <span className="text-yellow-600 font-extrabold text-xs">30 🪙</span>
                                         </button>
-                                        <button onClick={handleShare} className="flex-1 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs sm:text-sm font-bold py-2 rounded-xl shadow-sm flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-90 active:scale-95">
-                                            <span className="text-base sm:text-lg">📤</span>
-                                            <span>تحدى أصدقاءك</span>
+                                        <button onClick={handleShare} className="flex-1 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center justify-center transition-opacity hover:opacity-90 active:scale-95">
+                                            <span className="text-sm sm:text-base">📤 تحدى أصدقاءك</span>
                                         </button>
                                     </div>
 
                                     {/* 2. شبكة الحروف المتاحة */}
-                                    <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-gray-100 p-2 sm:p-4 rounded-2xl border border-gray-200">
+                                    <div className="grid grid-cols-6 gap-1.5 sm:gap-2 bg-gray-100 p-2 sm:p-3 rounded-2xl border border-gray-200">
                                         {availableLetters.map((letterObj) => (
                                             <button
                                                 key={`letter-${letterObj.id}`}
                                                 onClick={() => handleLetterClick(letterObj)}
                                                 disabled={letterObj.isUsed || letterObj.isRemoved}
-                                                className={`h-11 sm:h-14 rounded-lg sm:rounded-xl text-lg sm:text-2xl font-bold flex items-center justify-center transition-all select-none
+                                                className={`h-9 sm:h-11 rounded-md sm:rounded-lg text-base sm:text-xl font-bold flex items-center justify-center transition-all select-none
                                                     ${(letterObj.isUsed || letterObj.isRemoved) 
                                                         ? 'bg-transparent text-transparent opacity-0 scale-75 pointer-events-none' 
                                                         : 'bg-white text-gray-800 border-b-4 border-gray-300 hover:bg-blue-50 hover:border-blue-300 active:border-b-0 active:translate-y-1 shadow-sm'
@@ -854,15 +854,15 @@
                         {/* نافذة التلميح (Modal) */}
                         {showHintModal && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-fade-in backdrop-blur-sm">
-                                <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
-                                    <div className="text-4xl mb-3">💡</div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">تلميح</h3>
-                                    <p className="text-gray-600 mb-6 text-lg leading-relaxed">
+                                <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center shadow-2xl">
+                                    <div className="text-3xl mb-2">💡</div>
+                                    <h3 className="text-lg font-bold text-gray-800 mb-2">تلميح</h3>
+                                    <p className="text-gray-600 mb-5 text-base leading-relaxed">
                                         {levels[currentLevel].hint}
                                     </p>
                                     <button 
                                         onClick={() => { playSound('click'); setShowHintModal(false); }}
-                                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition"
+                                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl transition"
                                     >
                                         إغلاق
                                     </button>

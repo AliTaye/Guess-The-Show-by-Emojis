@@ -788,11 +788,11 @@
                                 <div className="flex flex-col gap-3 sm:gap-4">
                                     
                                     {/* 1. خانات الإجابة */}
-                                    <div className={`flex flex-wrap justify-center gap-x-1 gap-y-2 sm:gap-1.5 dir-rtl ${shake ? 'animate-shake' : ''}`}>
+                                    <div className={`flex flex-nowrap justify-center gap-x-0.5 sm:gap-x-1 w-full dir-rtl overflow-hidden ${shake ? 'animate-shake' : ''}`}>
                                         {(() => {
                                             let letterIndex = 0;
                                             return targetWordOriginal.split('').map((char, index) => {
-                                                if (char === ' ') return <div key={`space-${index}`} className="w-3 sm:w-4"></div>;
+                                                if (char === ' ') return <div key={`space-${index}`} className="w-1.5 sm:w-3 shrink-0"></div>;
                                                 
                                                 const currentIndex = letterIndex++;
                                                 const slotData = selectedSlots[currentIndex];
@@ -801,7 +801,7 @@
                                                     <div 
                                                         key={`slot-${currentIndex}`} 
                                                         onClick={() => handleSlotClick(currentIndex)}
-                                                        className={`w-8 h-9 sm:w-10 sm:h-11 flex items-center justify-center text-lg sm:text-xl font-bold rounded-lg border-b-4 transition-all select-none
+                                                        className={`flex-1 max-w-[2rem] sm:max-w-[2.75rem] h-9 sm:h-11 flex items-center justify-center text-sm sm:text-xl font-bold rounded-lg border-b-4 transition-all select-none
                                                             ${slotData 
                                                                 ? (slotData.locked ? 'bg-green-500 border-green-700 text-white shadow-md' : 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md cursor-pointer') 
                                                                 : 'bg-gray-100 border-gray-300 text-transparent'

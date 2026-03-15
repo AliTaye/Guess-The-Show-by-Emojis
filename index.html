@@ -305,6 +305,9 @@
             const [shake, setShake] = useState(false);
             const [showHintModal, setShowHintModal] = useState(false);
             const [toastMessage, setToastMessage] = useState(null);
+            
+            // حالة إعادة اللعب
+            const [isReplaying, setIsReplaying] = useState(false);
 
             // حالات نظام الألغاز
             const [targetWordOriginal, setTargetWordOriginal] = useState('');
@@ -351,6 +354,7 @@
 
                 setShake(false);
                 setJustSolved(false);
+                setIsReplaying(false);
 
             }, [activeCategory, currentLevel]);
 
@@ -377,13 +381,12 @@
                     const updatedCategoryProgress = [...new Set([...solvedProgress[activeCategory], currentLevel])];
                     
                     if (isNewSolve) {
-                        setCoins(prev => prev + 10); // مكافأة 10 عملات
+                        setCoins(prev => prev + 10);
                     }
 
                     setSolvedProgress(prev => ({ ...prev, [activeCategory]: updatedCategoryProgress }));
                     setJustSolved(true);
 
-                    // الاحتفال إذا أكمل القسم
                     if (updatedCategoryProgress.length === categoriesData[activeCategory].levels.length && isNewSolve) {
                         playSound('win');
                         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -397,6 +400,9 @@
                                 nextUnsolved = (nextUnsolved + 1) % categoryLevels.length;
                             }
                             changeLevel(nextUnsolved);
+                        } else {
+                            setJustSolved(false);
+                            setIsReplaying(false);
                         }
                     }, 1500);
                 } else {
@@ -405,20 +411,17 @@
                     
                     setTimeout(() => {
                         setShake(false);
-                        // تفريغ الخانات غير المقفلة (المكشوفة بوسيلة المساعدة) فقط
                         setSelectedSlots(prevSlots => prevSlots.map(slot => slot && slot.locked ? slot : null));
-                        // إعادة الحروف للشبكة ما لم تكن محذوفة أو مقفلة
                         setAvailableLetters(prev => prev.map(l => {
                             const isLockedInSlot = selectedSlots.some(s => s && s.id === l.id && s.locked);
                             return (isLockedInSlot || l.isRemoved) ? l : { ...l, isUsed: false };
                         }));
                     }, 800);
                 }
-            }, [selectedSlots, activeCategory, currentLevel, solvedProgress, targetWordLetters, justSolved]);
+            }, [selectedSlots, activeCategory, currentLevel, solvedProgress, targetWordLetters, justSolved, isReplaying]);
 
-            // عند النقر على حرف متاح
             const handleLetterClick = (letterObj) => {
-                if (letterObj.isUsed || letterObj.isRemoved || solvedProgress[activeCategory].includes(currentLevel)) return;
+                if (letterObj.isUsed || letterObj.isRemoved || (solvedProgress[activeCategory].includes(currentLevel) && !isReplaying)) return;
                 
                 const firstEmptyIndex = selectedSlots.findIndex(slot => slot === null);
                 if (firstEmptyIndex !== -1) {
@@ -433,11 +436,9 @@
                 }
             };
 
-            // عند النقر على خانة معبأة
             const handleSlotClick = (index) => {
                 const slotObj = selectedSlots[index];
-                // منع إرجاع الحرف إذا كانت الخانة مقفلة (تم كشفها بالمساعدة)
-                if (!slotObj || slotObj.locked || solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                if (!slotObj || slotObj.locked || (solvedProgress[activeCategory].includes(currentLevel) && !isReplaying) || justSolved) return;
                 
                 playSound('click');
                 setAvailableLetters(prev => prev.map(l => 
@@ -449,16 +450,15 @@
                 setSelectedSlots(newSlots);
             };
 
-            // وسائل المساعدة 1: كشف حرف صحيح
             const handleRevealLetter = () => {
-                if (solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                if ((solvedProgress[activeCategory].includes(currentLevel) && !isReplaying) || justSolved) return;
                 if (coins < 20) {
                     showToast('🪙 عذراً، رصيدك من العملات لا يكفي!');
                     return;
                 }
                 
                 const firstEmptyIndex = selectedSlots.findIndex(slot => slot === null);
-                if (firstEmptyIndex === -1) return; // جميع الخانات ممتلئة
+                if (firstEmptyIndex === -1) return; 
 
                 playSound('click');
                 setCoins(prev => prev - 20);
@@ -467,30 +467,26 @@
                 const letterIndex = availableLetters.findIndex(l => l.char === expectedChar && !l.isUsed && !l.isRemoved);
                 if (letterIndex !== -1) {
                     const letterObj = availableLetters[letterIndex];
-
                     setAvailableLetters(prev => {
                         const next = [...prev];
                         next[letterIndex] = { ...next[letterIndex], isUsed: true };
                         return next;
                     });
-
                     setSelectedSlots(prev => {
                         const next = [...prev];
-                        next[firstEmptyIndex] = { ...letterObj, locked: true }; // قفل الحرف
+                        next[firstEmptyIndex] = { ...letterObj, locked: true };
                         return next;
                     });
                 }
             };
 
-            // وسائل المساعدة 2: حذف 3 حروف خاطئة
             const handleRemoveWrongLetters = () => {
-                if (solvedProgress[activeCategory].includes(currentLevel) || justSolved) return;
+                if ((solvedProgress[activeCategory].includes(currentLevel) && !isReplaying) || justSolved) return;
                 if (coins < 30) {
                     showToast('🪙 عذراً، رصيدك من العملات لا يكفي!');
                     return;
                 }
 
-                // تحديد الحروف الممكن حذفها (تلك التي ليست من ضمن الإجابة أو زائدة عن الحاجة)
                 const targetCharsCount = {};
                 for(let c of targetWordLetters) {
                     targetCharsCount[c] = (targetCharsCount[c] || 0) + 1;
@@ -499,7 +495,6 @@
                 const currentCounts = { ...targetCharsCount };
                 const essentialIds = new Set();
                 
-                // تحديد الحروف الأساسية التي لا يمكن حذفها
                 availableLetters.forEach(l => {
                     if(currentCounts[l.char] > 0 && !l.isRemoved && (!l.isUsed || (l.isUsed && selectedSlots.some(s => s?.id === l.id && s.locked)))) {
                         essentialIds.add(l.id);
@@ -507,7 +502,6 @@
                     }
                 });
 
-                // تجميع معرفات الحروف القابلة للحذف
                 const removableIds = [];
                 availableLetters.forEach(l => {
                     if(!essentialIds.has(l.id) && !l.isUsed && !l.isRemoved) {
@@ -523,7 +517,6 @@
                 playSound('click');
                 setCoins(prev => prev - 30);
                 
-                // اختيار ما يصل إلى 3 حروف عشوائياً لحذفها
                 const toRemove = removableIds.sort(() => Math.random() - 0.5).slice(0, 3);
                 
                 setAvailableLetters(prev => prev.map(l => 
@@ -531,7 +524,6 @@
                 ));
             };
 
-            // مشاركة اللغز
             const handleShare = () => {
                 playSound('click');
                 const emojis = categoriesData[activeCategory].levels[currentLevel].emojis;
@@ -596,14 +588,13 @@
 
             // واجهة اختيار الأقسام
             if (!activeCategory) {
-                const totalLevelsCount = Object.keys(categoriesData).length * 20; // 6 * 20 = 120
+                const totalLevelsCount = Object.keys(categoriesData).length * 20;
                 const totalSolved = Object.values(solvedProgress).reduce((acc, curr) => acc + curr.length, 0);
                 const isMaster = totalSolved === totalLevelsCount;
 
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-4 sm:p-8">
                         <div className="max-w-5xl mx-auto">
-                            {/* شريط العملات العلوي */}
                             <div className="flex justify-end mb-4 px-2">
                                 <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 border-2 border-yellow-200">
                                     <span className="text-xl">🪙</span>
@@ -639,24 +630,26 @@
                                         <button
                                             key={cat.id}
                                             onClick={() => selectCategory(cat.id)}
-                                            className="relative overflow-hidden group rounded-3xl p-6 text-right transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl bg-white"
+                                            // هنا تم تثبيت طول زر الأقسام ليكون متساوي دائماً h-[180px]
+                                            className="relative overflow-hidden group rounded-3xl p-6 text-right transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl bg-white flex flex-col justify-between h-[180px] w-full"
                                         >
                                             <div className={`absolute top-0 right-0 w-full h-2 bg-gradient-to-r ${cat.color}`}></div>
-                                            <div className="flex justify-between items-center mb-4">
+                                            <div className="flex justify-between items-center w-full">
                                                 <div className="text-5xl group-hover:scale-110 transition-transform">{cat.icon}</div>
                                                 {isCompleted && <div className="text-3xl" title="مكتمل">🏆</div>}
                                             </div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">{cat.name}</h2>
-                                            
-                                            <div className="flex items-center justify-between text-sm font-semibold text-gray-500 mt-4">
-                                                <span>{solvedCount} مرحلة محلولة</span>
-                                                <span>{Math.round((solvedCount/20)*100)}%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
-                                                <div 
-                                                    className={`h-2 rounded-full bg-gradient-to-r ${cat.color} transition-all duration-500`}
-                                                    style={{ width: `${(solvedCount / 20) * 100}%` }}
-                                                ></div>
+                                            <div className="mt-auto w-full">
+                                                <h2 className="text-2xl font-bold text-gray-800 mb-1">{cat.name}</h2>
+                                                <div className="flex items-center justify-between text-sm font-semibold text-gray-500 mt-2">
+                                                    <span>{solvedCount} مرحلة محلولة</span>
+                                                    <span>{Math.round((solvedCount/20)*100)}%</span>
+                                                </div>
+                                                <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
+                                                    <div 
+                                                        className={`h-2 rounded-full bg-gradient-to-r ${cat.color} transition-all duration-500`}
+                                                        style={{ width: `${(solvedCount / 20) * 100}%` }}
+                                                    ></div>
+                                                </div>
                                             </div>
                                         </button>
                                     );
@@ -678,22 +671,20 @@
             const levels = currentCat.levels;
             const categorySolved = solvedProgress[activeCategory] || [];
             const isCurrentSolved = categorySolved.includes(currentLevel);
-            const isCategoryFinished = categorySolved.length === levels.length;
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-gray-50 relative overflow-hidden">
                     <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${currentCat.color}`}></div>
                     
-                    {/* شريط الإشعارات (Toast) */}
                     {toastMessage && (
                         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl font-bold animate-fade-in text-sm sm:text-base text-center w-max max-w-[90vw]">
                             {toastMessage}
                         </div>
                     )}
 
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-6 relative z-10 flex flex-col h-[95vh] sm:h-auto max-h-[950px]">
+                    {/* هنا تم تثبيت أبعاد الكرت ليكون ثابت الطول والعرض مهما تغيرت حالة اللغز */}
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-6 relative z-10 flex flex-col h-[95vh] sm:h-[650px] max-h-[950px]">
                         
-                        {/* الهيدر وزر الخروج */}
                         <div className="flex justify-between items-center mb-5">
                             <button 
                                 onClick={() => setActiveCategory(null)}
@@ -713,7 +704,6 @@
                             </div>
                         </div>
 
-                        {/* رأس اللعبة والتنقل */}
                         <div className="w-full text-center mb-3">
                             <div className="text-3xl mb-1">{currentCat.icon}</div>
                             
@@ -743,115 +733,122 @@
                             </div>
                         </div>
 
-                        {/* قسم الإيموجي */}
-                        <div className={`bg-gray-50 rounded-2xl w-full py-5 sm:py-6 mb-4 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                        <div className={`bg-gray-50 rounded-2xl w-full py-5 sm:py-6 mb-4 flex flex-col justify-center items-center shadow-inner border transition-all ${isCurrentSolved && !justSolved && !isReplaying ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
                             <span className={`text-4xl sm:text-5xl tracking-widest ${justSolved ? 'animate-bounce' : ''}`}>
                                 {levels[currentLevel].emojis}
                             </span>
                             
-                            {!isCurrentSolved && !justSolved && (
-                                <button 
-                                    onClick={() => { playSound('click'); setShowHintModal(true); }}
-                                    className="mt-3 flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-full font-bold transition text-xs shadow-sm border border-yellow-300"
-                                >
-                                    💡 تلميح مجاني
-                                </button>
-                            )}
+                            {/* استخدام الشفافية لإخفاء زر التلميح مع الإبقاء على حجمه لعدم تغيير قياسات الواجهة */}
+                            <button 
+                                onClick={() => { playSound('click'); setShowHintModal(true); }}
+                                className={`mt-3 flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-full font-bold transition text-xs shadow-sm border border-yellow-300 ${(!isCurrentSolved || isReplaying) && !justSolved ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                            >
+                                💡 تلميح مجاني
+                            </button>
                         </div>
 
-                        {/* منطقة اللعب السفلية */}
-                        <div className="flex-grow flex flex-col justify-end">
-                            {isCategoryFinished && !justSolved ? (
-                                <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center animate-fade-in mb-4">
-                                    <div className="text-4xl mb-4">🏆</div>
-                                    <h3 className="text-xl font-bold text-green-800 mb-2">أنهيت قسم {currentCat.name}!</h3>
-                                    <button 
-                                        onClick={() => { playSound('click'); setActiveCategory(null); }}
-                                        className="mt-4 bg-green-600 text-white font-bold py-2 px-6 rounded-xl w-full hover:bg-green-700 transition"
-                                    >
-                                        العودة للقائمة
-                                    </button>
-                                </div>
-                            ) : justSolved ? (
-                                <div className="w-full text-center py-6 text-green-500 font-bold text-xl sm:text-2xl animate-pulse flex-grow flex flex-col items-center justify-center gap-2">
-                                    <span>إجابة صحيحة! 👏</span>
-                                    {!categorySolved.includes(currentLevel) && <span className="text-yellow-500 text-sm bg-yellow-100 px-3 py-1 rounded-full">+10 عملات 🪙</span>}
-                                </div>
-                            ) : isCurrentSolved ? (
-                                <div className="w-full text-center py-5 bg-green-100 text-green-700 rounded-xl border border-green-200 font-bold flex-grow flex flex-col items-center justify-center gap-2">
-                                    <span className="text-lg">تم حل هذه المرحلة ✅</span>
-                                    <div className="text-lg font-bold text-green-800 bg-white/60 px-6 py-2 rounded-full mt-2">
-                                        {targetWordOriginal}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3 sm:gap-4">
-                                    
-                                    {/* 1. خانات الإجابة */}
-                                    <div className={`flex flex-nowrap justify-center gap-x-0.5 sm:gap-x-1 w-full dir-rtl overflow-hidden ${shake ? 'animate-shake' : ''}`}>
-                                        {(() => {
-                                            let letterIndex = 0;
-                                            return targetWordOriginal.split('').map((char, index) => {
-                                                if (char === ' ') return <div key={`space-${index}`} className="w-1.5 sm:w-3 shrink-0"></div>;
-                                                
-                                                const currentIndex = letterIndex++;
-                                                const slotData = selectedSlots[currentIndex];
-                                                
-                                                return (
-                                                    <div 
-                                                        key={`slot-${currentIndex}`} 
-                                                        onClick={() => handleSlotClick(currentIndex)}
-                                                        className={`flex-1 max-w-[2rem] sm:max-w-[2.75rem] h-9 sm:h-11 flex items-center justify-center text-sm sm:text-xl font-bold rounded-lg border-b-4 transition-all select-none
-                                                            ${slotData 
-                                                                ? (slotData.locked ? 'bg-green-500 border-green-700 text-white shadow-md' : 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md cursor-pointer') 
-                                                                : 'bg-gray-100 border-gray-300 text-transparent'
-                                                            }`}
-                                                    >
-                                                        {slotData ? slotData.char : ''}
-                                                    </div>
-                                                );
-                                            });
-                                        })()}
-                                    </div>
-
-                                    {/* وسائل المساعدة الإضافية */}
-                                    <div className="flex justify-center gap-2 sm:gap-3 px-1 my-1">
-                                        <button onClick={handleRevealLetter} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
-                                            <span>🔍 كشف حرف</span>
-                                            <span className="text-yellow-600 font-extrabold text-xs">20 🪙</span>
-                                        </button>
-                                        <button onClick={handleRemoveWrongLetters} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
-                                            <span>💣 حذف 3 أحرف</span>
-                                            <span className="text-yellow-600 font-extrabold text-xs">30 🪙</span>
-                                        </button>
-                                        <button onClick={handleShare} className="flex-1 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center justify-center transition-opacity hover:opacity-90 active:scale-95">
-                                            <span className="text-sm sm:text-base">📤 تحدى أصدقاءك</span>
-                                        </button>
-                                    </div>
-
-                                    {/* 2. شبكة الحروف المتاحة */}
-                                    <div className="grid grid-cols-6 gap-1.5 sm:gap-2 bg-gray-100 p-2 sm:p-3 rounded-2xl border border-gray-200">
-                                        {availableLetters.map((letterObj) => (
-                                            <button
-                                                key={`letter-${letterObj.id}`}
-                                                onClick={() => handleLetterClick(letterObj)}
-                                                disabled={letterObj.isUsed || letterObj.isRemoved}
-                                                className={`h-9 sm:h-11 rounded-md sm:rounded-lg text-base sm:text-xl font-bold flex items-center justify-center transition-all select-none
-                                                    ${(letterObj.isUsed || letterObj.isRemoved) 
-                                                        ? 'bg-transparent text-transparent opacity-0 scale-75 pointer-events-none' 
-                                                        : 'bg-white text-gray-800 border-b-4 border-gray-300 hover:bg-blue-50 hover:border-blue-300 active:border-b-0 active:translate-y-1 shadow-sm'
+                        <div className="flex-grow flex flex-col justify-end gap-3 sm:gap-4 pb-1">
+                            {/* خانات الإجابة أصبحت تظهر بشكل دائم في نفس المكان بنفس الحجم حتى للمراحل المجتازة */}
+                            <div className={`flex flex-nowrap justify-center gap-x-0.5 sm:gap-x-1 w-full dir-rtl overflow-hidden ${shake ? 'animate-shake' : ''}`}>
+                                {(() => {
+                                    let letterIndex = 0;
+                                    return targetWordOriginal.split('').map((char, index) => {
+                                        if (char === ' ') return <div key={`space-${index}`} className="w-1.5 sm:w-3 shrink-0"></div>;
+                                        
+                                        const currentIndex = letterIndex++;
+                                        let slotData = selectedSlots[currentIndex];
+                                        
+                                        // إذا كانت المرحلة مجتازة، اعرض الحروف صحيحة وملونة بالأخضر
+                                        if ((isCurrentSolved && !isReplaying) || justSolved) {
+                                            slotData = { char: char, locked: true };
+                                        }
+                                        
+                                        return (
+                                            <div 
+                                                key={`slot-${currentIndex}`} 
+                                                onClick={() => handleSlotClick(currentIndex)}
+                                                className={`flex-1 max-w-[2rem] sm:max-w-[2.75rem] h-9 sm:h-11 flex items-center justify-center text-sm sm:text-xl font-bold rounded-lg border-b-4 transition-all select-none
+                                                    ${slotData 
+                                                        ? (slotData.locked ? 'bg-green-500 border-green-700 text-white shadow-md cursor-default' : 'bg-blue-600 border-blue-800 text-white animate-pop shadow-md cursor-pointer') 
+                                                        : 'bg-gray-100 border-gray-300 text-transparent'
                                                     }`}
                                             >
-                                                {letterObj.char}
-                                            </button>
-                                        ))}
+                                                {slotData ? slotData.char : ''}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+
+                            {/* الحاوية السفلية بلوحة المفاتيح أو برسالة الاجتياز، مصممة بنفس الطول تماماً */}
+                            <div className="flex flex-col justify-end min-h-[180px] sm:min-h-[220px] w-full mt-2">
+                                {justSolved ? (
+                                    <div className="w-full h-full bg-green-50 rounded-2xl border border-green-200 flex flex-col items-center justify-center gap-3 animate-pulse py-6">
+                                        <span className="text-green-600 font-bold text-xl sm:text-2xl">إجابة صحيحة! 👏</span>
+                                        {!isReplaying && <span className="text-yellow-600 font-bold text-sm bg-yellow-100 px-4 py-1.5 rounded-full border border-yellow-300 shadow-sm">+10 عملات 🪙</span>}
                                     </div>
-                                    
-                                </div>
-                            )}
+                                ) : isCurrentSolved && !isReplaying ? (
+                                    <div className="w-full h-full bg-green-50 rounded-2xl border border-green-200 flex flex-col items-center justify-center gap-4 animate-fade-in shadow-inner py-6">
+                                        <span className="text-green-700 font-bold text-lg sm:text-xl">تم حل هذه المرحلة ✅</span>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => {
+                                                    playSound('click');
+                                                    setIsReplaying(true);
+                                                    setAvailableLetters(prev => prev.map(l => ({ ...l, isUsed: false, isRemoved: false })));
+                                                    setSelectedSlots(Array(targetWordLetters.length).fill(null));
+                                                }}
+                                                className="bg-white hover:bg-green-100 text-green-700 border-2 border-green-400 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                                            >
+                                                <span>إعادة اللعب</span>
+                                                <span className="text-lg">🔄</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => { playSound('click'); setActiveCategory(null); }}
+                                                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                                            >
+                                                <span>القائمة</span>
+                                                <span className="text-lg">🏠</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2 w-full animate-fade-in">
+                                        <div className="flex justify-center gap-2 sm:gap-3 px-1 my-1">
+                                            <button onClick={handleRevealLetter} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
+                                                <span>🔍 كشف حرف</span>
+                                                <span className="text-yellow-600 font-extrabold text-xs">20 🪙</span>
+                                            </button>
+                                            <button onClick={handleRemoveWrongLetters} className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 transition-colors active:bg-gray-100">
+                                                <span>💣 حذف 3 أحرف</span>
+                                                <span className="text-yellow-600 font-extrabold text-xs">30 🪙</span>
+                                            </button>
+                                            <button onClick={handleShare} className="flex-1 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs sm:text-sm font-bold py-1.5 rounded-xl shadow-sm flex flex-col items-center justify-center transition-opacity hover:opacity-90 active:scale-95">
+                                                <span className="text-sm sm:text-base">📤 تحدى أصدقاءك</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 bg-gray-100 p-2 sm:p-3 rounded-2xl border border-gray-200">
+                                            {availableLetters.map((letterObj) => (
+                                                <button
+                                                    key={`letter-${letterObj.id}`}
+                                                    onClick={() => handleLetterClick(letterObj)}
+                                                    disabled={letterObj.isUsed || letterObj.isRemoved}
+                                                    className={`h-9 sm:h-11 rounded-md sm:rounded-lg text-base sm:text-xl font-bold flex items-center justify-center transition-all select-none
+                                                        ${(letterObj.isUsed || letterObj.isRemoved) 
+                                                            ? 'bg-transparent text-transparent opacity-0 scale-75 pointer-events-none' 
+                                                            : 'bg-white text-gray-800 border-b-4 border-gray-300 hover:bg-blue-50 hover:border-blue-300 active:border-b-0 active:translate-y-1 shadow-sm'
+                                                        }`}
+                                                >
+                                                    {letterObj.char}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* نافذة التلميح (Modal) */}
                         {showHintModal && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-fade-in backdrop-blur-sm">
                                 <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center shadow-2xl">
